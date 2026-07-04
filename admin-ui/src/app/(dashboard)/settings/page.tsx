@@ -172,6 +172,24 @@ export default function SettingsPage() {
   const activeCount = (accounts || []).filter(a => a.is_active && (a.risk_status || 'active') === 'active').length;
   const pausedCount = (accounts || []).filter(a => (a.risk_status || '') === 'paused' || !a.is_active).length;
 
+  const getAccountBlockReason = (account: AccountRow) => {
+    const riskStatus = String(account.risk_status || 'active').toLowerCase();
+    const isActive = Boolean(account.is_active);
+    const dailyLimit = Number(account.daily_job_limit || 0);
+    const dailyCount = Number(account.daily_job_count || 0);
+    if (!isActive) return 'Inactive';
+    if (riskStatus === 'paused') return 'Paused';
+    if (riskStatus && riskStatus !== 'active') return 'Risky';
+    if (dailyLimit > 0 && dailyCount >= dailyLimit) return 'Quota reached';
+    return 'Available';
+  };
+
+  const getAccountBlockTone = (reason: string): 'default' | 'error' | 'warning' | 'success' => {
+    if (reason === 'Available') return 'success';
+    if (reason === 'Quota reached') return 'warning';
+    return 'error';
+  };
+
   return (
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
@@ -227,12 +245,35 @@ export default function SettingsPage() {
                           <Chip size="small" label={account.is_active ? 'active' : 'inactive'} color={account.is_active ? 'success' : 'default'} />
                         </TableCell>
                         <TableCell>
-                          <Chip size="small" label={account.risk_status || 'active'} color={(account.risk_status || 'active') === 'paused' ? 'warning' : 'success'} />
+                          {(() => {
+                            const reason = getAccountBlockReason(account);
+                            return (
+                              <>
+                                <Chip
+                                  size="small"
+                                  label={account.risk_status || 'active'}
+                                  color={(account.risk_status || 'active') === 'paused' ? 'warning' : (account.risk_status || 'active') === 'active' ? 'success' : 'error'}
+                                  sx={{ mr: 1 }}
+                                />
+                                <Chip
+                                  size="small"
+                                  label={reason}
+                                  color={getAccountBlockTone(reason)}
+                                  variant={reason === 'Available' ? 'outlined' : 'filled'}
+                                />
+                              </>
+                            );
+                          })()}
                           {account.risk_reason && (
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, maxWidth: 200, display: 'block' }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, maxWidth: 240, display: 'block' }}>
                               {account.risk_reason}
                             </Typography>
                           )}
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, maxWidth: 240, display: 'block' }}>
+                            {Number(account.daily_job_limit || 0) > 0
+                              ? `Quota ${Number(account.daily_job_count || 0)} / ${Number(account.daily_job_limit || 0)}`
+                              : 'Quota not set'}
+                          </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">{account.daily_job_count || 0} / {account.daily_job_limit || 0}</Typography>
