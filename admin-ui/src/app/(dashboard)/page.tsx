@@ -45,8 +45,14 @@ type HealthSnapshot = {
 };
 
 export default function Dashboard() {
+  const [now, setNow] = React.useState(() => Date.now());
   const { data, error, isLoading } = useSWR('/api/dashboard/summary', fetcher, { refreshInterval: 30000 });
   const { data: health } = useSWR<HealthSnapshot>('/api/internal/health', fetcher, { refreshInterval: 15000 });
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 15000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   if (isLoading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><CircularProgress /></Box>;
@@ -72,6 +78,32 @@ export default function Dashboard() {
 
   const workerStatus = String(health?.worker?.status || 'unknown');
   const schedulerStatus = String(health?.scheduler?.status || 'unknown');
+  const pendingJobs = Number(health?.counts?.pending_jobs || 0);
+  const runningJobs = Number(health?.counts?.running_jobs || 0);
+  const workerHeartbeatTs = health?.worker?.ts ? Date.parse(health.worker.ts) : Number.NaN;
+  const workerHeartbeatAgeMs = Number.isFinite(workerHeartbeatTs) ? now - workerHeartbeatTs : Number.POSITIVE_INFINITY;
+  const workerHeartbeatFresh = workerHeartbeatAgeMs >= 0 && workerHeartbeatAgeMs <= 60000;
+  const workerHeartbeatAgeLabel = Number.isFinite(workerHeartbeatAgeMs)
+    ? `${Math.max(0, Math.round(workerHeartbeatAgeMs / 1000))}s ago`
+    : 'unknown';
+  const workerBadge = (() => {
+    if (!workerHeartbeatFresh) return 'down';
+    if (workerStatus === 'busy' || workerStatus === 'running' || runningJobs > 0) return 'alive';
+    if (pendingJobs === 0 && runningJobs === 0) return 'no job';
+    return 'idle';
+  })();
+  const workerBadgeReason = (() => {
+    if (!workerHeartbeatFresh) {
+      return `Heartbeat stale (${workerHeartbeatAgeLabel}), pending ${pendingJobs}, running ${runningJobs}.`;
+    }
+    if (workerStatus === 'busy' || workerStatus === 'running' || runningJobs > 0) {
+      return `Worker is actively processing jobs. Last heartbeat ${workerHeartbeatAgeLabel}, pending ${pendingJobs}, running ${runningJobs}.`;
+    }
+    if (pendingJobs === 0 && runningJobs === 0) {
+      return `Worker heartbeat is fresh, but there are no queued or running jobs. Last heartbeat ${workerHeartbeatAgeLabel}.`;
+    }
+    return `Worker heartbeat is fresh. Pending ${pendingJobs}, running ${runningJobs}.`;
+  })();
   const statusTone = (value: string): 'default' | 'error' | 'info' | 'success' | 'warning' => {
     if (value === 'busy' || value === 'running') return 'success';
     if (value === 'idle') return 'info';
@@ -155,18 +187,26 @@ export default function Dashboard() {
                 </Box>
               </Box>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                <Chip label={`worker: ${workerStatus}`} color={statusTone(workerStatus)} />
+                <Chip
+                  label={`Worker: ${workerBadge}`}
+                  color={workerBadge === 'down' ? 'error' : workerBadge === 'alive' ? 'success' : workerBadge === 'idle' ? 'info' : 'default'}
+                  variant="filled"
+                />
+                <Chip label={`worker raw: ${workerStatus}`} color={statusTone(workerStatus)} variant="outlined" />
                 <Chip label={`scheduler: ${schedulerStatus}`} color={statusTone(schedulerStatus)} />
                 <Chip label={`accounts: ${health?.counts?.accounts ?? 0}`} variant="outlined" />
               </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.6 }}>
+                {workerBadgeReason}
+              </Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 2 }}>
                 <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8fafc' }}>
                   <Typography variant="caption" color="text.secondary">Pending jobs</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{health?.counts?.pending_jobs ?? 0}</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{pendingJobs}</Typography>
                 </Box>
                 <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8fafc' }}>
                   <Typography variant="caption" color="text.secondary">Running jobs</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{health?.counts?.running_jobs ?? 0}</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{runningJobs}</Typography>
                 </Box>
                 <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8fafc' }}>
                   <Typography variant="caption" color="text.secondary">Active accounts</Typography>
@@ -180,7 +220,7 @@ export default function Dashboard() {
               <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                 <ShieldIcon fontSize="small" />
                 <Typography variant="body2">
-                  Deep snapshot cập nhật lúc {health?.ts ? new Date(health.ts).toLocaleString('vi-VN', { hour12: false }) : 'chưa có dữ liệu'}
+                  Worker heartbeat {workerHeartbeatFresh ? 'còn sống' : 'quá hạn'} · cập nhật lúc {health?.worker?.ts ? new Date(health.worker.ts).toLocaleString('vi-VN', { hour12: false }) : 'chưa có dữ liệu'}
                 </Typography>
               </Box>
             </CardContent>
