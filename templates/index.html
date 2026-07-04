@@ -10,38 +10,38 @@
     body { font-family: Inter, ui-sans-serif, system-ui; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-slate-50 text-slate-900 min-h-screen">
   <div x-data="appShell()" x-init="init()" class="min-h-screen">
-    <section x-show="!authenticated && bootstrapState.can_bootstrap" class="min-h-screen grid place-items-center px-6 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.10),transparent_28%),linear-gradient(180deg,#020617,#020617)]">
-      <div class="w-full max-w-4xl grid lg:grid-cols-[1.1fr_0.9fr] gap-6 rounded-[2rem] border border-cyan-500/20 bg-slate-950/80 backdrop-blur-xl shadow-2xl overflow-hidden">
+    <section x-show="!authenticated && bootstrapState.can_bootstrap" class="min-h-screen grid place-items-center px-6 bg-[#1e2336]">
+      <div class="w-full max-w-4xl grid lg:grid-cols-[1.1fr_0.9fr] gap-6 rounded-[2rem] border border-cyan-500/20 bg-white/80 backdrop-blur-xl shadow-2xl overflow-hidden">
         <div class="p-8 lg:p-10 bg-[linear-gradient(135deg,rgba(34,211,238,0.12),rgba(15,23,42,0.6))]">
           <div class="text-xs uppercase tracking-[0.35em] text-cyan-300 font-bold">Bootstrap Console</div>
           <h1 class="text-4xl lg:text-5xl font-black mt-3 leading-tight">Khởi tạo owner đầu tiên cho Content Hub OS</h1>
-          <p class="mt-4 text-slate-300 max-w-xl">Hệ thống chưa có owner. Sau khi tạo user Supabase Auth và gán role owner, toàn bộ Admin / Content / Scheduler sẽ hoạt động trong một vòng vận hành đầy đủ.</p>
+          <p class="mt-4 text-slate-600 max-w-xl">Hệ thống chưa có owner. Sau khi tạo user Supabase Auth và gán role owner, toàn bộ Admin / Content / Scheduler sẽ hoạt động trong một vòng vận hành đầy đủ.</p>
           <div class="mt-6 grid sm:grid-cols-3 gap-3 text-sm">
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-slate-500 text-xs uppercase tracking-[0.2em]">Owners</div>
               <div class="text-2xl font-black mt-2" x-text="bootstrapState.owners"></div>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-slate-500 text-xs uppercase tracking-[0.2em]">Admins</div>
               <div class="text-2xl font-black mt-2" x-text="bootstrapState.admins"></div>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-slate-500 text-xs uppercase tracking-[0.2em]">Mode</div>
               <div class="text-2xl font-black mt-2 text-cyan-300">Bootstrap</div>
             </div>
           </div>
         </div>
-        <div class="p-8 lg:p-10 bg-slate-950">
-          <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+        <div class="p-8 lg:p-10 bg-white">
+          <div class="rounded-3xl border border-slate-200 bg-slate-900/70 p-6">
             <div class="text-xs uppercase tracking-[0.3em] text-slate-500">Step 1</div>
             <h2 class="text-2xl font-bold mt-2">Tạo tài khoản owner</h2>
-            <p class="text-sm text-slate-400 mt-2">Dùng email/password trong Supabase Auth. Nếu đã có owner, hãy đăng nhập ở khung bên dưới.</p>
+            <p class="text-sm text-slate-500 mt-2">Dùng email/password trong Supabase Auth. Nếu đã có owner, hãy đăng nhập ở khung bên dưới.</p>
             <div class="mt-5 space-y-3">
-              <input x-model="loginForm.email" type="email" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Owner email">
-              <input x-model="loginForm.password" type="password" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Owner password">
-              <button @click="login()" class="w-full rounded-xl bg-cyan-500 text-slate-950 font-bold py-3">Sign in / Bootstrap</button>
+              <input x-model="loginForm.email" type="email" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Owner email">
+              <input x-model="loginForm.password" type="password" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Owner password">
+              <button @click="login()" class="w-full rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-bold py-3">Sign in / Bootstrap</button>
             </div>
             <div class="mt-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-sm text-cyan-100">
               Nếu chưa có owner, hãy đặt `BOOTSTRAP_OWNER_EMAIL` và `BOOTSTRAP_OWNER_PASSWORD` trên Render để hệ thống tự tạo owner ở lần khởi động đầu.
@@ -51,24 +51,24 @@
       </div>
     </section>
     <section x-show="!authenticated && !bootstrapState.can_bootstrap" class="min-h-screen grid place-items-center px-6">
-      <div class="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/70 backdrop-blur p-8 shadow-2xl">
-        <div class="text-xs uppercase tracking-[0.3em] text-cyan-400 font-bold">Content Hub OS</div>
+      <div class="w-full max-w-md rounded-3xl border border-slate-200 bg-slate-900/70 backdrop-blur p-8 shadow-2xl">
+        <div class="text-xs uppercase tracking-[0.3em] text-[#0088ff] font-bold">Content Hub OS</div>
         <h1 class="text-3xl font-black mt-2">Đăng nhập</h1>
-        <p class="text-sm text-slate-400 mt-2">Dùng tài khoản Supabase Auth để truy cập dashboard và phân quyền theo `profiles.role`.</p>
+        <p class="text-sm text-slate-500 mt-2">Dùng tài khoản Supabase Auth để truy cập dashboard và phân quyền theo `profiles.role`.</p>
         <div class="mt-6 space-y-3">
-          <input x-model="loginForm.email" type="email" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Email">
-          <input x-model="loginForm.password" type="password" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Password">
-          <button @click="login()" class="w-full rounded-xl bg-cyan-500 text-slate-950 font-bold py-3">Đăng nhập</button>
+          <input x-model="loginForm.email" type="email" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Email">
+          <input x-model="loginForm.password" type="password" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Password">
+          <button @click="login()" class="w-full rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-bold py-3">Đăng nhập</button>
         </div>
         <div class="mt-6 text-xs text-slate-500">
-          Môi trường: <span class="text-slate-300" x-text="env"></span>
+          Môi trường: <span class="text-slate-600" x-text="env"></span>
         </div>
       </div>
     </section>
     <div x-show="authenticated" class="min-h-screen flex">
-    <aside class="w-72 border-r border-slate-800 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.10),transparent_42%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(2,6,23,1))] p-5 space-y-6">
+    <aside class="w-72 border-r border-slate-200 bg-[#1e2336] p-5 space-y-6">
       <div>
-        <div class="text-xs uppercase tracking-[0.3em] text-cyan-400 font-bold">Content Hub OS</div>
+        <div class="text-xs uppercase tracking-[0.3em] text-[#0088ff] font-bold">Content Hub OS</div>
         <h1 class="text-2xl font-black mt-2">{{ app_name }}</h1>
         <p class="text-xs text-slate-500 mt-1">{{ app_env }}</p>
       </div>
@@ -98,7 +98,7 @@
     </aside>
     <main class="flex-1 overflow-y-auto relative">
       <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cyan-500/10 via-transparent to-transparent pointer-events-none"></div>
-      <header class="border-b border-slate-800 px-8 py-5 flex items-center justify-between bg-slate-950/70 backdrop-blur-xl sticky top-0 z-20">
+      <header class="border-b border-slate-200 px-8 py-5 flex items-center justify-between bg-white shadow-sm backdrop-blur-none sticky top-0 z-20">
         <div>
           <div class="text-xs text-slate-500 uppercase tracking-[0.25em]">Workspace</div>
           <h2 class="text-xl font-bold" x-text="{
@@ -111,75 +111,75 @@
           <div class="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span>Live sync via Supabase</span>
-            <span class="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-900/70" x-text="env"></span>
+            <span class="px-2 py-0.5 rounded-full border border-slate-300 bg-slate-900/70" x-text="env"></span>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <div class="hidden md:flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs text-slate-300">
+          <div class="hidden md:flex items-center gap-2 rounded-xl border border-slate-200 bg-white shadow-sm rounded-xl px-3 py-2 text-xs text-slate-600">
             <span x-text="currentUser?.full_name || currentUser?.email || 'Guest'"></span>
-            <span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300" x-text="currentUser?.role || 'viewer'"></span>
+            <span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-600" x-text="currentUser?.role || 'viewer'"></span>
           </div>
-          <button @click="logout()" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 font-semibold">Logout</button>
-          <button @click="refreshAll()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-semibold">Refresh</button>
-          <button @click="tab='projects'" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 font-semibold">Dự án</button>
+          <button @click="logout()" class="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold">Logout</button>
+          <button @click="refreshAll()" class="px-4 py-2 rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-semibold">Refresh</button>
+          <button @click="tab='projects'" class="px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold">Dự án</button>
         </div>
       </header>
 
       <section x-show="tab==='dashboard'" class="p-8 space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <template x-for="card in summaryCards" :key="card.label">
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-5">
               <div class="text-xs uppercase tracking-[0.2em] text-slate-500" x-text="card.label"></div>
               <div class="text-3xl font-black mt-3" x-text="card.value"></div>
             </div>
           </template>
         </div>
-        <div class="rounded-3xl border border-slate-800 bg-slate-900/50 p-6">
+        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
           <h3 class="font-bold text-lg mb-4">Trạng thái hệ thống</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div class="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">Pending jobs: <span class="font-semibold" x-text="summary.pending_jobs"></span></div>
-            <div class="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">Running jobs: <span class="font-semibold" x-text="summary.running_jobs"></span></div>
-            <div class="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">Failed jobs: <span class="font-semibold" x-text="summary.failed_jobs"></span></div>
-            <div class="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">Environment: <span class="font-semibold" x-text="env"></span></div>
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">Pending jobs: <span class="font-semibold" x-text="summary.pending_jobs"></span></div>
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">Running jobs: <span class="font-semibold" x-text="summary.running_jobs"></span></div>
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">Failed jobs: <span class="font-semibold" x-text="summary.failed_jobs"></span></div>
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">Environment: <span class="font-semibold" x-text="env"></span></div>
           </div>
           <div class="mt-4">
-            <button @click="tickScheduler()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-semibold">Run scheduler tick</button>
+            <button @click="tickScheduler()" class="px-4 py-2 rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-semibold">Run scheduler tick</button>
           </div>
         </div>
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div class="rounded-3xl border border-slate-800 bg-slate-900/50 p-6">
+          <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="font-bold text-lg">Recent Jobs</h3>
               <span class="text-xs text-slate-500">10 latest</span>
             </div>
             <div class="space-y-2">
               <template x-for="job in recent.jobs" :key="job.id">
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div class="flex items-center justify-between">
                     <div>
                       <div class="font-semibold" x-text="job.job_type"></div>
                       <div class="text-xs text-slate-500" x-text="job.status + ' · ' + (job.last_error || 'ok')"></div>
                     </div>
-                    <div class="text-xs text-slate-400" x-text="job.created_at || ''"></div>
+                    <div class="text-xs text-slate-500" x-text="job.created_at || ''"></div>
                   </div>
                 </div>
               </template>
             </div>
           </div>
-          <div class="rounded-3xl border border-slate-800 bg-slate-900/50 p-6">
+          <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="font-bold text-lg">Recent Events</h3>
               <span class="text-xs text-slate-500">10 latest</span>
             </div>
             <div class="space-y-2">
               <template x-for="event in recent.events" :key="event.id">
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div class="flex items-center justify-between gap-3">
                     <div>
                       <div class="font-semibold" x-text="event.code"></div>
                       <div class="text-xs text-slate-500" x-text="event.message"></div>
                     </div>
-                    <div class="text-xs text-slate-400" x-text="event.level"></div>
+                    <div class="text-xs text-slate-500" x-text="event.level"></div>
                   </div>
                 </div>
               </template>
@@ -190,45 +190,45 @@
 
       <section x-show="tab==='projects'" class="p-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div class="space-y-6">
-          <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+          <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
             <h3 class="font-bold text-lg mb-4">Tạo Group</h3>
             <div class="space-y-3">
-              <input x-model="groupForm.name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Tên group">
-              <input x-model="groupForm.source_key" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Source key">
-              <input x-model="groupForm.source_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Source link">
-              <input x-model="groupForm.target_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target link">
-              <button @click="createGroup()" class="w-full rounded-xl bg-cyan-500 text-slate-950 font-bold py-3">Lưu Group</button>
+              <input x-model="groupForm.name" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Tên group">
+              <input x-model="groupForm.source_key" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Source key">
+              <input x-model="groupForm.source_link" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Source link">
+              <input x-model="groupForm.target_link" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Target link">
+              <button @click="createGroup()" class="w-full rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-bold py-3">Lưu Group</button>
             </div>
           </div>
-          <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+          <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
             <h3 class="font-bold text-lg mb-4">Tạo Topic</h3>
-            <select x-model="topicForm.group_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 mb-3">
+            <select x-model="topicForm.group_id" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 mb-3">
               <option value="">Chọn group</option>
               <template x-for="g in groups" :key="g.id">
                 <option :value="g.id" x-text="g.name"></option>
               </template>
             </select>
             <div class="space-y-3">
-              <input x-model="topicForm.name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Tên topic">
-              <input x-model="topicForm.source_topic_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Source topic id">
-              <input x-model="topicForm.target_topic_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target topic id">
+              <input x-model="topicForm.name" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Tên topic">
+              <input x-model="topicForm.source_topic_id" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Source topic id">
+              <input x-model="topicForm.target_topic_id" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Target topic id">
               <button @click="createTopic()" class="w-full rounded-xl bg-emerald-500 text-slate-950 font-bold py-3">Lưu Topic</button>
             </div>
           </div>
         </div>
 
         <div class="xl:col-span-2 space-y-6">
-          <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+          <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
             <div class="flex flex-wrap items-center gap-3 mb-4">
               <h3 class="font-bold text-lg mr-auto">Groups</h3>
-              <input x-model="query.groups" @keydown.enter="applySearch('groups')" class="w-56 rounded-xl bg-slate-950 border border-slate-800 px-4 py-2 text-sm" placeholder="Search groups">
-              <button @click="applySearch('groups')" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Search</button>
-              <button @click="prevPage('groups')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Prev</button>
-              <button @click="nextPage('groups')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Next</button>
+              <input x-model="query.groups" @keydown.enter="applySearch('groups')" class="w-56 rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm" placeholder="Search groups">
+              <button @click="applySearch('groups')" class="px-3 py-2 rounded-lg bg-[#0088ff] text-white hover:bg-blue-600 text-xs font-bold">Search</button>
+              <button @click="prevPage('groups')" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Prev</button>
+              <button @click="nextPage('groups')" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Next</button>
             </div>
             <div class="space-y-3">
               <template x-for="g in groups" :key="g.id">
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div class="flex items-center justify-between gap-3">
                     <div>
                       <div class="font-bold" x-text="g.name"></div>
@@ -237,7 +237,7 @@
                     <div class="flex gap-2">
                       <button @click="selectGroup(g)" class="px-3 py-2 rounded-lg bg-slate-800 text-xs">Open</button>
                       <button @click="openGroupEditor(g)" class="px-3 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 text-xs">Edit</button>
-                      <button @click="openGroupRuns(g)" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Runs</button>
+                      <button @click="openGroupRuns(g)" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Runs</button>
                       <button @click="confirmDelete('group', g.id, g.name)" class="px-3 py-2 rounded-lg bg-rose-500/20 text-rose-300 text-xs">Delete</button>
                     </div>
                   </div>
@@ -246,41 +246,41 @@
             </div>
           </div>
 
-          <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6" x-show="selectedGroup">
+          <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6" x-show="selectedGroup">
             <div class="flex items-center justify-between mb-4">
               <h3 class="font-bold text-lg">Topics & Campaigns</h3>
-              <div class="text-sm text-slate-400" x-text="selectedGroup?.name"></div>
+              <div class="text-sm text-slate-500" x-text="selectedGroup?.name"></div>
             </div>
-            <div class="mb-5 rounded-2xl border border-slate-800 bg-slate-950/60 p-4" x-show="editingGroup">
+            <div class="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4" x-show="editingGroup">
               <div class="font-semibold mb-3">Edit Group</div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input x-model="editingGroup.name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Tên group">
-                <input x-model="editingGroup.source_key" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Source key">
-                <input x-model="editingGroup.source_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 md:col-span-2" placeholder="Source link">
-                <input x-model="editingGroup.target_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 md:col-span-2" placeholder="Target link">
+                <input x-model="editingGroup.name" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Tên group">
+                <input x-model="editingGroup.source_key" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Source key">
+                <input x-model="editingGroup.source_link" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 md:col-span-2" placeholder="Source link">
+                <input x-model="editingGroup.target_link" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 md:col-span-2" placeholder="Target link">
               </div>
               <div class="flex gap-3 mt-4">
-                <button @click="saveGroupEdit()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold">Save</button>
-                <button @click="cancelGroupEdit()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200">Cancel</button>
+                <button @click="saveGroupEdit()" class="px-4 py-2 rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-bold">Save</button>
+                <button @click="cancelGroupEdit()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200">Cancel</button>
               </div>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div class="space-y-3">
                 <div class="flex items-center gap-2 mb-2">
-                  <input x-model="query.topics" @keydown.enter="applySearch('topics')" class="flex-1 rounded-xl bg-slate-950 border border-slate-800 px-4 py-2 text-sm" placeholder="Search topics">
-                  <button @click="applySearch('topics')" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Search</button>
-                  <button @click="prevPage('topics')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Prev</button>
-                  <button @click="nextPage('topics')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Next</button>
+                  <input x-model="query.topics" @keydown.enter="applySearch('topics')" class="flex-1 rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm" placeholder="Search topics">
+                  <button @click="applySearch('topics')" class="px-3 py-2 rounded-lg bg-[#0088ff] text-white hover:bg-blue-600 text-xs font-bold">Search</button>
+                  <button @click="prevPage('topics')" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Prev</button>
+                  <button @click="nextPage('topics')" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Next</button>
                 </div>
                 <template x-for="t in topics" :key="t.id">
-                  <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div class="flex items-center justify-between gap-3">
                       <div>
                         <div class="font-semibold" x-text="t.name"></div>
                         <div class="text-xs text-slate-500">#<span x-text="t.source_topic_id || 0"></span> → #<span x-text="t.target_topic_id || 0"></span></div>
                       </div>
                     <div class="flex gap-2">
-                      <button @click="selectTopic(t)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Open</button>
+                      <button @click="selectTopic(t)" class="px-3 py-2 rounded-lg bg-[#0088ff] text-white hover:bg-blue-600 text-xs font-bold">Open</button>
                       <button @click="openTopicEditor(t)" class="px-3 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 text-xs">Edit</button>
                       <button @click="confirmDelete('topic', t.id, t.name)" class="px-3 py-2 rounded-lg bg-rose-500/20 text-rose-300 text-xs">Delete</button>
                     </div>
@@ -289,85 +289,85 @@
               </template>
             </div>
               <div class="space-y-3" x-show="selectedTopic">
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4" x-show="editingTopic">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4" x-show="editingTopic">
                   <div class="font-semibold mb-3">Edit Topic</div>
                   <div class="space-y-3">
-                    <input x-model="editingTopic.name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Tên topic">
+                    <input x-model="editingTopic.name" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Tên topic">
                     <div class="grid grid-cols-2 gap-3">
-                      <input x-model="editingTopic.source_topic_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Source topic id">
-                      <input x-model="editingTopic.target_topic_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target topic id">
+                      <input x-model="editingTopic.source_topic_id" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Source topic id">
+                      <input x-model="editingTopic.target_topic_id" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Target topic id">
                     </div>
-                    <input x-model="editingTopic.target_link_seed" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target link seed">
+                    <input x-model="editingTopic.target_link_seed" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Target link seed">
                     <div class="flex gap-3">
-                      <button @click="saveTopicEdit()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold">Save</button>
-                      <button @click="cancelTopicEdit()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200">Cancel</button>
+                      <button @click="saveTopicEdit()" class="px-4 py-2 rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-bold">Save</button>
+                      <button @click="cancelTopicEdit()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200">Cancel</button>
                     </div>
                   </div>
                 </div>
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div class="flex items-center gap-2 mb-3">
                     <div class="font-semibold mr-auto" x-text="selectedTopic?.name"></div>
-                    <input x-model="query.campaigns" @keydown.enter="applySearch('campaigns')" class="w-44 rounded-xl bg-slate-950 border border-slate-800 px-4 py-2 text-xs" placeholder="Search campaigns">
-                    <button @click="applySearch('campaigns')" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Search</button>
-                    <button @click="prevPage('campaigns')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Prev</button>
-                    <button @click="nextPage('campaigns')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Next</button>
+                    <input x-model="query.campaigns" @keydown.enter="applySearch('campaigns')" class="w-44 rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs" placeholder="Search campaigns">
+                    <button @click="applySearch('campaigns')" class="px-3 py-2 rounded-lg bg-[#0088ff] text-white hover:bg-blue-600 text-xs font-bold">Search</button>
+                    <button @click="prevPage('campaigns')" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Prev</button>
+                    <button @click="nextPage('campaigns')" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Next</button>
                   </div>
                   <div class="space-y-3">
-                    <input x-model="campaignForm.title" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Campaign title">
-              <input x-model="campaignForm.target_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target link">
-              <textarea x-model="campaignForm.caption" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 min-h-[120px]" placeholder="Caption"></textarea>
+                    <input x-model="campaignForm.title" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Campaign title">
+              <input x-model="campaignForm.target_link" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Target link">
+              <textarea x-model="campaignForm.caption" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 min-h-[120px]" placeholder="Caption"></textarea>
               <div class="grid grid-cols-2 gap-3">
-                <input x-model="campaignForm.delay_min" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Delay min">
-                <input x-model="campaignForm.delay_max" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Delay max">
+                <input x-model="campaignForm.delay_min" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Delay min">
+                <input x-model="campaignForm.delay_max" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Delay max">
               </div>
               <div class="grid grid-cols-2 gap-3">
-                <label class="flex items-center gap-2 text-sm text-slate-300 rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
-                  <input type="checkbox" x-model="campaignForm.schedule_enabled" class="rounded border-slate-700">
+                <label class="flex items-center gap-2 text-sm text-slate-600 rounded-xl bg-white border border-slate-200 px-4 py-3">
+                  <input type="checkbox" x-model="campaignForm.schedule_enabled" class="rounded border-slate-300">
                   Schedule enabled
                 </label>
-                <input x-model="campaignForm.schedule_slots" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="09:00, 13:00, 21:00">
+                <input x-model="campaignForm.schedule_slots" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="09:00, 13:00, 21:00">
               </div>
               <button @click="createCampaign()" class="w-full rounded-xl bg-emerald-500 text-slate-950 font-bold py-3">Lưu Campaign</button>
             </div>
           </div>
                 <div class="space-y-3">
                   <template x-for="c in campaigns" :key="c.id">
-                    <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <div class="flex items-center justify-between gap-3">
                         <div>
                           <div class="font-semibold" x-text="c.title"></div>
                           <div class="text-xs text-slate-500" x-text="c.status || 'draft'"></div>
                         </div>
                         <div class="flex gap-2">
-                          <button @click="runCampaign(c.id)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Run</button>
+                          <button @click="runCampaign(c.id)" class="px-3 py-2 rounded-lg bg-[#0088ff] text-white hover:bg-blue-600 text-xs font-bold">Run</button>
                           <button @click="openCampaignEditor(c)" class="px-3 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 text-xs">Edit</button>
-                          <button @click="openCampaignRuns(c)" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Runs</button>
+                          <button @click="openCampaignRuns(c)" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Runs</button>
                           <button @click="confirmDelete('campaign', c.id, c.title)" class="px-3 py-2 rounded-lg bg-rose-500/20 text-rose-300 text-xs">Delete</button>
                         </div>
                       </div>
                     </div>
                   </template>
                 </div>
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4" x-show="editingCampaign">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4" x-show="editingCampaign">
                   <div class="font-semibold mb-3">Edit Campaign</div>
                   <div class="space-y-3">
-                    <input x-model="editingCampaign.title" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Campaign title">
-                    <input x-model="editingCampaign.target_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target link">
-                    <textarea x-model="editingCampaign.caption" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 min-h-[120px]" placeholder="Caption"></textarea>
+                    <input x-model="editingCampaign.title" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Campaign title">
+                    <input x-model="editingCampaign.target_link" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Target link">
+                    <textarea x-model="editingCampaign.caption" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 min-h-[120px]" placeholder="Caption"></textarea>
                     <div class="grid grid-cols-2 gap-3">
-                      <input x-model="editingCampaign.delay_min" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Delay min">
-                      <input x-model="editingCampaign.delay_max" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Delay max">
+                      <input x-model="editingCampaign.delay_min" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Delay min">
+                      <input x-model="editingCampaign.delay_max" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Delay max">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                      <label class="flex items-center gap-2 text-sm text-slate-300 rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
-                        <input type="checkbox" x-model="editingCampaign.schedule_enabled" class="rounded border-slate-700">
+                      <label class="flex items-center gap-2 text-sm text-slate-600 rounded-xl bg-white border border-slate-200 px-4 py-3">
+                        <input type="checkbox" x-model="editingCampaign.schedule_enabled" class="rounded border-slate-300">
                         Schedule enabled
                       </label>
-                      <input x-model="editingCampaign.schedule_slots" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="09:00, 13:00, 21:00">
+                      <input x-model="editingCampaign.schedule_slots" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="09:00, 13:00, 21:00">
                     </div>
                     <div class="flex gap-3">
-                      <button @click="saveCampaignEdit()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold">Save</button>
-                      <button @click="cancelCampaignEdit()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200">Cancel</button>
+                      <button @click="saveCampaignEdit()" class="px-4 py-2 rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-bold">Save</button>
+                      <button @click="cancelCampaignEdit()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200">Cancel</button>
                     </div>
                   </div>
                 </div>
@@ -380,44 +380,44 @@
       <section x-show="tab==='campaigns'" class="p-8 space-y-6">
         <!-- Stat Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex items-center justify-between">
+          <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-5 flex items-center justify-between">
             <div><div class="text-xs uppercase tracking-[0.2em] text-slate-500">Campaign</div><div class="text-3xl font-black mt-1" x-text="summary.campaigns || 0"></div></div>
-            <div class="p-3 bg-cyan-500/20 text-cyan-400 rounded-xl"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg></div>
+            <div class="p-3 bg-cyan-500/20 text-[#0088ff] rounded-xl"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg></div>
           </div>
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex items-center justify-between">
+          <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-5 flex items-center justify-between">
             <div><div class="text-xs uppercase tracking-[0.2em] text-slate-500">Đang chạy</div><div class="text-3xl font-black mt-1">0</div></div>
             <div class="p-3 bg-purple-500/20 text-purple-400 rounded-xl"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
           </div>
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex items-center justify-between">
+          <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-5 flex items-center justify-between">
             <div><div class="text-xs uppercase tracking-[0.2em] text-slate-500">Đã gửi</div><div class="text-3xl font-black mt-1">0</div></div>
             <div class="p-3 bg-amber-500/20 text-amber-400 rounded-xl"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg></div>
           </div>
-          <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex items-center justify-between">
+          <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-5 flex items-center justify-between">
             <div><div class="text-xs uppercase tracking-[0.2em] text-slate-500">Preview Nhận</div><div class="text-3xl font-black mt-1">0</div></div>
             <div class="p-3 bg-blue-500/20 text-blue-400 rounded-xl"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg></div>
           </div>
         </div>
 
         <!-- Table -->
-        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h3 class="font-bold text-lg">Danh sách campaign</h3>
-              <p class="text-sm text-slate-400">Quản lý các đợt phát sóng (Vui lòng chọn Kênh/Topic ở tab Dự án trước để tạo campaign)</p>
+              <p class="text-sm text-slate-500">Quản lý các đợt phát sóng (Vui lòng chọn Kênh/Topic ở tab Dự án trước để tạo campaign)</p>
             </div>
-            <button @click="tab='projects'" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold">+ Tạo campaign</button>
+            <button @click="tab='projects'" class="px-4 py-2 rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-bold">+ Tạo campaign</button>
           </div>
           
-          <div class="flex items-center gap-3 mb-4 text-sm border-b border-slate-800 pb-3">
-             <div class="text-slate-400">Preview: <span class="font-bold text-slate-200">0 người</span></div>
+          <div class="flex items-center gap-3 mb-4 text-sm border-b border-slate-200 pb-3">
+             <div class="text-slate-500">Preview: <span class="font-bold text-slate-700">0 người</span></div>
              <div class="px-2 py-1 rounded-full border border-emerald-500/30 text-emerald-400 text-xs font-bold">Active: 0</div>
              <div class="px-2 py-1 rounded-full border border-orange-500/30 text-orange-400 text-xs font-bold">Hết hạn: 0</div>
-             <div class="px-2 py-1 rounded-full border border-slate-600 text-slate-400 text-xs">Chưa mua: 0</div>
+             <div class="px-2 py-1 rounded-full border border-slate-600 text-slate-500 text-xs">Chưa mua: 0</div>
           </div>
 
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm whitespace-nowrap">
-              <thead class="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-800">
+              <thead class="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
                 <tr>
                   <th class="py-3 px-4">Campaign</th>
                   <th class="py-3 px-4">Tệp</th>
@@ -435,10 +435,10 @@
                 <template x-for="c in campaigns" :key="c.id">
                   <tr class="hover:bg-slate-800/30">
                     <td class="py-3 px-4 font-semibold" x-text="c.title"></td>
-                    <td class="py-3 px-4 text-slate-400">--</td>
+                    <td class="py-3 px-4 text-slate-500">--</td>
                     <td class="py-3 px-4">
                       <span class="px-2 py-1 rounded-full text-xs font-medium" 
-                            :class="c.status === 'running' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-500/10 text-slate-400'" 
+                            :class="c.status === 'running' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-500/10 text-slate-500'" 
                             x-text="c.status || 'draft'"></span>
                     </td>
                     <td class="py-3 px-4">
@@ -449,10 +449,10 @@
                         <span class="text-xs text-slate-500">0%</span>
                       </div>
                     </td>
-                    <td class="py-3 px-4 text-slate-400 text-xs"><span x-text="c.delay_min"></span>s - <span x-text="c.delay_max"></span>s</td>
+                    <td class="py-3 px-4 text-slate-500 text-xs"><span x-text="c.delay_min"></span>s - <span x-text="c.delay_max"></span>s</td>
                     <td class="py-3 px-4 flex justify-end gap-2">
                        <button @click="runCampaign(c.id)" class="p-2 rounded-lg hover:bg-emerald-500/20 text-emerald-400" title="Chạy"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg></button>
-                       <button @click="openCampaignEditor(c)" class="p-2 rounded-lg hover:bg-slate-700 text-slate-300" title="Sửa"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                       <button @click="openCampaignEditor(c)" class="p-2 rounded-lg hover:bg-slate-700 text-slate-600" title="Sửa"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
                        <button @click="confirmDelete('campaign', c.id, c.title)" class="p-2 rounded-lg hover:bg-rose-500/20 text-rose-400" title="Xóa"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                     </td>
                   </tr>
@@ -464,22 +464,22 @@
       </section>
 
       <section x-show="tab==='settings'" class="p-8 space-y-6">
-        <h2 class="text-2xl font-bold border-b border-slate-800 pb-4">Hệ thống & Tài khoản</h2>
+        <h2 class="text-2xl font-bold border-b border-slate-200 pb-4">Hệ thống & Tài khoản</h2>
         
         <!-- API Accounts -->
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
           <h3 class="font-bold text-lg mb-4">New Account</h3>
           <div class="space-y-3">
-            <input x-model="accountForm.name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Account name">
-            <input x-model="accountForm.api_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="API ID">
-            <input x-model="accountForm.api_hash" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="API Hash">
-            <input x-model="accountForm.phone" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Phone">
-            <input x-model="accountForm.session_ref" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Session ref">
-            <button @click="createAccount()" class="w-full rounded-xl bg-cyan-500 text-slate-950 font-bold py-3">Save Account</button>
+            <input x-model="accountForm.name" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Account name">
+            <input x-model="accountForm.api_id" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="API ID">
+            <input x-model="accountForm.api_hash" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="API Hash">
+            <input x-model="accountForm.phone" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Phone">
+            <input x-model="accountForm.session_ref" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Session ref">
+            <button @click="createAccount()" class="w-full rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-bold py-3">Save Account</button>
           </div>
         </div>
-        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
           <h3 class="font-bold text-lg mb-4">Accounts</h3>
           <div class="space-y-3">
             <template x-for="a in accounts" :key="a.id">
@@ -516,15 +516,15 @@
 
         <!-- Platform Settings -->
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+          <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
             <h3 class="font-bold text-lg mb-4">Settings</h3>
             <div class="space-y-3">
               <template x-for="s in settingsList" :key="s.key">
-                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div class="text-xs uppercase tracking-[0.2em] text-slate-500" x-text="s.key"></div>
                   <div class="mt-2 flex items-center gap-3">
-                    <input x-model="s.value" class="flex-1 rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
-                    <button @click="saveSetting(s)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Save</button>
+                    <input x-model="s.value" class="flex-1 rounded-xl bg-white border border-slate-200 px-4 py-3">
+                    <button @click="saveSetting(s)" class="px-3 py-2 rounded-lg bg-[#0088ff] text-white hover:bg-blue-600 text-xs font-bold">Save</button>
                   </div>
                 </div>
               </template>
@@ -534,51 +534,51 @@
 
         <!-- Admin Roles -->
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
+        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6 space-y-4">
           <div>
             <h3 class="font-bold text-lg">Bootstrap / Invites</h3>
-            <p class="text-sm text-slate-400 mt-1">Khi chưa có owner, hệ thống có thể bootstrap bằng env hoặc mời user mới ngay trong app.</p>
+            <p class="text-sm text-slate-500 mt-1">Khi chưa có owner, hệ thống có thể bootstrap bằng env hoặc mời user mới ngay trong app.</p>
           </div>
-          <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-sm">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
             <div class="flex items-center justify-between"><span>Owners</span><span class="font-bold" x-text="bootstrapState.owners"></span></div>
             <div class="flex items-center justify-between mt-2"><span>Admins</span><span class="font-bold" x-text="bootstrapState.admins"></span></div>
             <div class="flex items-center justify-between mt-2"><span>Bootstrap possible</span><span class="font-bold" x-text="bootstrapState.can_bootstrap ? 'Yes' : 'No'"></span></div>
           </div>
           <div class="space-y-3">
-            <input x-model="adminInviteForm.email" type="email" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Invite email">
-            <input x-model="adminInviteForm.full_name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Full name">
-            <select x-model="adminInviteForm.role" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
+            <input x-model="adminInviteForm.email" type="email" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Invite email">
+            <input x-model="adminInviteForm.full_name" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3" placeholder="Full name">
+            <select x-model="adminInviteForm.role" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3">
               <option value="viewer">viewer</option>
               <option value="editor">editor</option>
               <option value="admin">admin</option>
               <option value="owner">owner</option>
             </select>
-            <button @click="inviteUser()" class="w-full rounded-xl bg-cyan-500 text-slate-950 font-bold py-3">Send invite</button>
+            <button @click="inviteUser()" class="w-full rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-bold py-3">Send invite</button>
           </div>
         </div>
-        <div class="xl:col-span-2 rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+        <div class="xl:col-span-2 rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h3 class="font-bold text-lg">Users & Roles</h3>
-              <p class="text-sm text-slate-400">Quản lý quyền trực tiếp từ profiles.</p>
+              <p class="text-sm text-slate-500">Quản lý quyền trực tiếp từ profiles.</p>
             </div>
-            <button @click="loadAdminUsers()" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Reload</button>
+            <button @click="loadAdminUsers()" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Reload</button>
           </div>
           <div class="space-y-3">
             <template x-for="u in adminUsers" :key="u.id">
-              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+              <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
                   <div class="md:col-span-2">
                     <div class="font-semibold" x-text="u.full_name || u.id"></div>
                     <div class="text-xs text-slate-500" x-text="u.id"></div>
                   </div>
-                  <select x-model="u.role" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
+                  <select x-model="u.role" class="w-full rounded-xl bg-white border border-slate-200 px-4 py-3">
                     <option value="viewer">viewer</option>
                     <option value="editor">editor</option>
                     <option value="admin">admin</option>
                     <option value="owner">owner</option>
                   </select>
-                  <button @click="saveRole(u)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Save</button>
+                  <button @click="saveRole(u)" class="px-3 py-2 rounded-lg bg-[#0088ff] text-white hover:bg-blue-600 text-xs font-bold">Save</button>
                 </div>
               </div>
             </template>
@@ -588,36 +588,36 @@
       </section>
 
       <section x-show="tab==='logs'" class="p-8 space-y-6">
-        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+        <div class="rounded-3xl border border-slate-200 bg-white shadow-sm rounded-xl p-6">
           <div class="flex flex-wrap items-center gap-3 mb-4">
             <h3 class="font-bold text-lg mr-auto">Logs</h3>
-            <input x-model="query.logs" @keydown.enter="applySearch('logs')" class="rounded-xl bg-slate-950 border border-slate-800 px-4 py-2" placeholder="Search logs">
-            <select x-model="logFilter.level" class="rounded-xl bg-slate-950 border border-slate-800 px-4 py-2">
+            <input x-model="query.logs" @keydown.enter="applySearch('logs')" class="rounded-xl bg-white border border-slate-200 px-4 py-2" placeholder="Search logs">
+            <select x-model="logFilter.level" class="rounded-xl bg-white border border-slate-200 px-4 py-2">
               <option value="">All levels</option>
               <option value="info">info</option>
               <option value="error">error</option>
               <option value="ok">ok</option>
             </select>
-            <input x-model="logFilter.entity_id" class="rounded-xl bg-slate-950 border border-slate-800 px-4 py-2" placeholder="Entity ID">
-            <select x-model="logFilter.entity_type" class="rounded-xl bg-slate-950 border border-slate-800 px-4 py-2">
+            <input x-model="logFilter.entity_id" class="rounded-xl bg-white border border-slate-200 px-4 py-2" placeholder="Entity ID">
+            <select x-model="logFilter.entity_type" class="rounded-xl bg-white border border-slate-200 px-4 py-2">
               <option value="">Any entity</option>
               <option value="group">group</option>
               <option value="topic">topic</option>
               <option value="campaign">campaign</option>
             </select>
-            <button @click="loadLogs()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-semibold">Apply</button>
-            <button @click="prevPage('logs')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Prev</button>
-            <button @click="nextPage('logs')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Next</button>
+            <button @click="loadLogs()" class="px-4 py-2 rounded-xl bg-[#0088ff] text-white hover:bg-blue-600 font-semibold">Apply</button>
+            <button @click="prevPage('logs')" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Prev</button>
+            <button @click="nextPage('logs')" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Next</button>
           </div>
           <div class="space-y-2">
             <template x-for="l in logs" :key="l.id">
-              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+              <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div class="flex items-center justify-between gap-3">
                   <div>
                     <div class="font-semibold" x-text="l.code"></div>
                     <div class="text-xs text-slate-500" x-text="l.message"></div>
                   </div>
-                  <div class="text-xs text-slate-400" x-text="l.level"></div>
+                  <div class="text-xs text-slate-500" x-text="l.level"></div>
                 </div>
               </div>
             </template>
@@ -634,53 +634,53 @@
       </div>
     </div>
 
-    <div x-show="confirmBox.open" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-950 p-6 shadow-2xl">
+    <div x-show="confirmBox.open" class="fixed inset-0 z-50 bg-white/75 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
         <div class="text-xs uppercase tracking-[0.3em] text-slate-500">Confirm delete</div>
         <h3 class="text-xl font-bold mt-2">Xoá <span x-text="confirmBox.label"></span>?</h3>
-        <p class="text-sm text-slate-400 mt-3">Thao tác này không thể hoàn tác. Dữ liệu liên quan sẽ bị xoá khỏi hệ thống.</p>
+        <p class="text-sm text-slate-500 mt-3">Thao tác này không thể hoàn tác. Dữ liệu liên quan sẽ bị xoá khỏi hệ thống.</p>
         <div class="flex gap-3 mt-6">
           <button @click="executeDelete()" class="px-4 py-3 rounded-xl bg-rose-500 text-white font-bold">Delete</button>
-          <button @click="closeConfirm()" class="px-4 py-3 rounded-xl bg-slate-800 text-slate-200">Cancel</button>
+          <button @click="closeConfirm()" class="px-4 py-3 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200">Cancel</button>
         </div>
       </div>
     </div>
 
-    <div x-show="drawer.open" class="fixed inset-0 z-[45] bg-slate-950/50 backdrop-blur-sm" style="display:none" @click="closeDrawer()"></div>
-    <aside x-show="drawer.open" x-transition class="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-slate-950 border-l border-slate-800 shadow-2xl overflow-y-auto" style="display:none">
-      <div class="p-6 border-b border-slate-800 flex items-start justify-between gap-4">
+    <div x-show="drawer.open" class="fixed inset-0 z-[45] bg-slate-50 backdrop-blur-sm" style="display:none" @click="closeDrawer()"></div>
+    <aside x-show="drawer.open" x-transition class="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-[#1e2336] text-white border-l border-slate-200 shadow-2xl overflow-y-auto" style="display:none">
+      <div class="p-6 border-b border-slate-200 flex items-start justify-between gap-4">
         <div>
           <div class="text-xs uppercase tracking-[0.3em] text-slate-500">Inspector</div>
           <h3 class="text-2xl font-black mt-1" x-text="drawer.title"></h3>
           <p class="text-sm text-slate-500 mt-1" x-text="drawer.subtitle"></p>
         </div>
-        <button @click="closeDrawer()" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200">Close</button>
+        <button @click="closeDrawer()" class="px-3 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700">Close</button>
       </div>
       <div class="p-6 space-y-4">
         <template x-if="drawer.type === 'group'">
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-3">
-              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Topics</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.topics || 0"></div></div>
-              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Campaigns</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.campaigns || 0"></div></div>
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4"><div class="text-xs text-slate-500 uppercase">Topics</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.topics || 0"></div></div>
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4"><div class="text-xs text-slate-500 uppercase">Campaigns</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.campaigns || 0"></div></div>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Quick Actions</div>
               <div class="flex flex-wrap gap-2 mt-3">
-                <button @click="tab='content'; closeDrawer()" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Open workspace</button>
-                <button @click="tickScheduler()" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Tick scheduler</button>
+                <button @click="tab='content'; closeDrawer()" class="px-3 py-2 rounded-lg bg-[#0088ff] text-white hover:bg-blue-600 text-xs font-bold">Open workspace</button>
+                <button @click="tickScheduler()" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Tick scheduler</button>
               </div>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Recent Jobs</div>
               <div class="mt-3 space-y-2">
                 <template x-for="job in drawer.jobs" :key="job.id">
-                  <button @click="openJobDetail(job)" class="w-full text-left rounded-xl border border-slate-800 bg-slate-950/70 p-3 hover:border-cyan-500/30">
+                  <button @click="openJobDetail(job)" class="w-full text-left rounded-xl border border-slate-200 bg-slate-50 p-3 hover:border-cyan-500/30">
                     <div class="flex items-center justify-between">
                       <div>
                         <div class="text-sm font-semibold" x-text="job.job_type"></div>
                         <div class="text-xs text-slate-500" x-text="job.status || 'pending'"></div>
                       </div>
-                      <div class="text-xs text-slate-400" x-text="job.created_at || ''"></div>
+                      <div class="text-xs text-slate-500" x-text="job.created_at || ''"></div>
                     </div>
                   </button>
                 </template>
@@ -692,14 +692,14 @@
         <template x-if="drawer.type === 'topic'">
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-3">
-              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Source</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.source_topic_id || 0"></div></div>
-              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Target</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.target_topic_id || 0"></div></div>
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4"><div class="text-xs text-slate-500 uppercase">Source</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.source_topic_id || 0"></div></div>
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4"><div class="text-xs text-slate-500 uppercase">Target</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.target_topic_id || 0"></div></div>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Quick Actions</div>
               <div class="flex flex-wrap gap-2 mt-3">
-                <button @click="tab='content'; closeDrawer()" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Open workspace</button>
-                <button @click="selectTopic(drawer.metrics)" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Open topic</button>
+                <button @click="tab='content'; closeDrawer()" class="px-3 py-2 rounded-lg bg-[#0088ff] text-white hover:bg-blue-600 text-xs font-bold">Open workspace</button>
+                <button @click="selectTopic(drawer.metrics)" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Open topic</button>
               </div>
             </div>
           </div>
@@ -707,27 +707,27 @@
         <template x-if="drawer.type === 'campaign'">
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-3">
-              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Status</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.status || 'draft'"></div></div>
-              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Schedule</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.schedule_enabled ? 'On' : 'Off'"></div></div>
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4"><div class="text-xs text-slate-500 uppercase">Status</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.status || 'draft'"></div></div>
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4"><div class="text-xs text-slate-500 uppercase">Schedule</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.schedule_enabled ? 'On' : 'Off'"></div></div>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Quick Actions</div>
               <div class="flex flex-wrap gap-2 mt-3">
-                <button @click="runCampaign(drawer.metrics.id)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Run now</button>
-                <button @click="openCampaignEditor(drawer.metrics)" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Edit</button>
+                <button @click="runCampaign(drawer.metrics.id)" class="px-3 py-2 rounded-lg bg-[#0088ff] text-white hover:bg-blue-600 text-xs font-bold">Run now</button>
+                <button @click="openCampaignEditor(drawer.metrics)" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs">Edit</button>
               </div>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Runs</div>
               <div class="mt-3 space-y-2">
                 <template x-for="run in drawer.runs" :key="run.id">
-                  <button @click="openRunDetail(run)" class="w-full text-left rounded-xl border border-slate-800 bg-slate-950/70 p-3 hover:border-cyan-500/30">
+                  <button @click="openRunDetail(run)" class="w-full text-left rounded-xl border border-slate-200 bg-slate-50 p-3 hover:border-cyan-500/30">
                     <div class="flex items-center justify-between">
                       <div>
                         <div class="text-sm font-semibold" x-text="run.slot_key || run.id"></div>
                         <div class="text-xs text-slate-500" x-text="run.status || 'pending'"></div>
                       </div>
-                      <div class="text-xs text-slate-400" x-text="run.created_at || ''"></div>
+                      <div class="text-xs text-slate-500" x-text="run.created_at || ''"></div>
                     </div>
                   </button>
                 </template>
@@ -739,20 +739,20 @@
         <template x-if="drawer.type === 'run'">
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-3">
-              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Status</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.status || 'pending'"></div></div>
-              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Queued</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.queued_items || 0"></div></div>
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4"><div class="text-xs text-slate-500 uppercase">Status</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.status || 'pending'"></div></div>
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4"><div class="text-xs text-slate-500 uppercase">Queued</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.queued_items || 0"></div></div>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Jobs</div>
               <div class="mt-3 space-y-2">
                 <template x-for="job in drawer.jobs" :key="job.id">
-                  <button @click="openJobDetail(job)" class="w-full text-left rounded-xl border border-slate-800 bg-slate-950/70 p-3 hover:border-cyan-500/30">
+                  <button @click="openJobDetail(job)" class="w-full text-left rounded-xl border border-slate-200 bg-slate-50 p-3 hover:border-cyan-500/30">
                     <div class="flex items-center justify-between">
                       <div>
                         <div class="text-sm font-semibold" x-text="job.job_type"></div>
                         <div class="text-xs text-slate-500" x-text="job.status || 'pending'"></div>
                       </div>
-                      <div class="text-xs text-slate-400" x-text="job.created_at || ''"></div>
+                      <div class="text-xs text-slate-500" x-text="job.created_at || ''"></div>
                     </div>
                   </button>
                 </template>
@@ -764,16 +764,16 @@
         <template x-if="drawer.type === 'job'">
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-3">
-              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Attempts</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.attempts || 0"></div></div>
-              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Priority</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.priority || 0"></div></div>
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4"><div class="text-xs text-slate-500 uppercase">Attempts</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.attempts || 0"></div></div>
+              <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4"><div class="text-xs text-slate-500 uppercase">Priority</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.priority || 0"></div></div>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Payload</div>
-              <pre class="mt-3 text-xs whitespace-pre-wrap text-slate-300" x-text="JSON.stringify(drawer.metrics.payload || {}, null, 2)"></pre>
+              <pre class="mt-3 text-xs whitespace-pre-wrap text-slate-600" x-text="JSON.stringify(drawer.metrics.payload || {}, null, 2)"></pre>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm rounded-xl p-4">
               <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Result</div>
-              <pre class="mt-3 text-xs whitespace-pre-wrap text-slate-300" x-text="JSON.stringify(drawer.metrics.result || {}, null, 2)"></pre>
+              <pre class="mt-3 text-xs whitespace-pre-wrap text-slate-600" x-text="JSON.stringify(drawer.metrics.result || {}, null, 2)"></pre>
             </div>
           </div>
         </template>
@@ -824,8 +824,8 @@
           {label:'Running', value: 0},
           {label:'Failed', value: 0},
         ],
-        activeNav: 'bg-cyan-500 text-slate-950 font-semibold',
-        inactiveNav: 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800',
+        activeNav: 'bg-[#0088ff] text-white font-semibold shadow-md',
+        inactiveNav: 'bg-white border border-slate-300 hover:bg-slate-50 text-slate-600 hover:bg-slate-800',
         accountBadgeText(a) {
           if ((a.risk_status || 'active') !== 'active') return 'PAUSED';
           if (!a.is_active) return 'OFF';
@@ -833,13 +833,13 @@
         },
         accountBadgeClass(a) {
           if ((a.risk_status || 'active') !== 'active') return 'bg-rose-500/15 text-rose-300 border border-rose-500/20';
-          if (!a.is_active) return 'bg-slate-500/15 text-slate-300 border border-slate-500/20';
+          if (!a.is_active) return 'bg-slate-500/15 text-slate-600 border border-slate-500/20';
           return 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20';
         },
         accountCardClass(a) {
           if ((a.risk_status || 'active') !== 'active') return 'bg-rose-500/5 border-rose-500/20';
-          if (!a.is_active) return 'bg-slate-950/70 border-slate-800';
-          return 'bg-slate-950/70 border-emerald-500/20';
+          if (!a.is_active) return 'bg-slate-50 border-slate-200';
+          return 'bg-slate-50 border-emerald-500/20';
         },
         accountQuotaLabel(a) {
           const used = Number(a.daily_job_count || 0);
