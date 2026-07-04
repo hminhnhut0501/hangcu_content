@@ -157,6 +157,9 @@ export default function SettingsPage() {
       const res = await fetchApi(`/api/accounts/${account.id}/resume`, { method: 'POST' });
       const resumedRow = (res as { row?: AccountRow | null } | undefined)?.row || null;
       notify(resumedRow?.is_active ? 'Đã resume account.' : 'Resume chưa đổi trạng thái, kiểm tra backend.', resumedRow?.is_active ? 'success' : 'warning');
+      if (resumedRow) {
+        setSelectedAccount(prev => (prev?.id === account.id ? resumedRow : prev));
+      }
       await refresh();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Không thể resume account.', 'error');
@@ -264,6 +267,9 @@ export default function SettingsPage() {
                         </TableCell>
                         <TableCell>
                           <Chip size="small" label={account.is_active ? 'active' : 'inactive'} color={account.is_active ? 'success' : 'default'} />
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                            is_active={String(Boolean(account.is_active))}
+                          </Typography>
                         </TableCell>
                         <TableCell>
                           {(() => {
