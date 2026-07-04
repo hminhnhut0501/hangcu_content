@@ -122,7 +122,11 @@ export default function SettingsPage() {
             daily_job_limit: Number(form.daily_job_limit || 30),
           }),
         });
-        const freshAccount = (createResponse as { row?: AccountRow | null } | undefined)?.row || null;
+        const updatedAccounts = await refresh();
+        const freshAccount =
+          (createResponse as { row?: AccountRow | null } | undefined)?.row ||
+          (updatedAccounts || []).find((item) => item.name === trimmedName && (item.phone || '') === (form.phone || '')) ||
+          null;
         setSaveDebug({ patchResponse: createResponse, freshRow: freshAccount });
         if (Number(freshAccount?.daily_job_limit || 0) > 0) {
           notify('Đã tạo account.', 'success');
