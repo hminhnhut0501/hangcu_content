@@ -14,7 +14,23 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   });
   
   if (!res.ok) {
-    const error = new Error(`API error: ${res.status}`);
+    let message = `API error: ${res.status}`;
+    try {
+      const data = await res.json();
+      if (typeof data?.detail === 'string') {
+        message = data.detail;
+      } else if (typeof data?.message === 'string') {
+        message = data.message;
+      }
+    } catch {
+      try {
+        const text = await res.text();
+        if (text) message = text;
+      } catch {
+        // ignore
+      }
+    }
+    const error = new Error(message);
     (error as Error & { status?: number }).status = res.status;
     throw error;
   }
