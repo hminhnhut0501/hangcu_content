@@ -16,6 +16,7 @@ app = FastAPI(title=settings.app_name)
 app.include_router(api_router)
 templates = Jinja2Templates(directory="templates")
 
+allowed_origin_regex = r"https://.*\.vercel\.app"
 allowed_origins = [
     origin.strip()
     for origin in (
@@ -27,6 +28,7 @@ allowed_origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allowed_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
