@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.repositories.content_repo import create_event, delete_row, insert_row, list_rows_filtered, update_row
+from app.repositories.content_repo import create_event, delete_row, insert_row, list_rows_filtered, pick_account_for_job, update_row
 from app.schemas.campaigns import CampaignCreate, CampaignUpdate
 from app.schemas.responses import DeleteResponse, EntityResponse
 
@@ -36,6 +36,7 @@ def run_campaign(campaign_id: str):
         {
             "job_type": "run_campaign",
             "campaign_id": campaign_id,
+            "account_id": (pick_account_for_job() or {}).get("id"),
             "status": "pending",
             "priority": 100,
             "payload": {"campaign_id": campaign_id},

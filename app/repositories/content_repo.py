@@ -256,6 +256,89 @@ def update_campaign(campaign_id: str, payload: dict[str, Any]):
     return _client().table("content_campaigns").update(payload).eq("id", campaign_id).execute().data
 
 
+def _today_key():
+    return utc_now().date().isoformat()
+
+
+def _reset_account_if_needed(account: dict[str, Any]):
+    reset_at = account.get("daily_job_reset_at")
+    today = _today_key()
+    if not reset_at or str(reset_at)[:10] != today:
+        _client().table("tg_accounts").update(
+            {
+                "daily_job_count": 0,
+                "daily_job_reset_at": now_iso(),
+            }
+        ).eq("id", account["id"]).execute()
+        account["daily_job_count"] = 0
+        account["daily_job_reset_at"] = now_iso()
+
+
+def get_available_accounts():
+    rows = (
+        _client()
+        .table("tg_accounts")
+        .select("*")
+        .eq("is_active", True)
+        .execute()
+        .data
+        or []
+    )
+    eligible = []
+    for account in rows:
+        if (account.get("risk_status") or "active") != "active":
+            continue
+        _reset_account_if_needed(account)
+        limit = int(account.get("daily_job_limit") or 0)
+        used = int(account.get("daily_job_count") or 0)
+        if limit and used >= limit:
+            continue
+        eligible.append(account)
+    eligible.sort(key=lambda a: (int(a.get("daily_job_count") or 0), str(a.get("updated_at") or "")))
+    return eligible
+
+
+def pick_account_for_job() -> dict[str, Any] | None:
+    accounts = get_available_accounts()
+    if not accounts:
+        return None
+    return accounts[0]
+
+
+def increment_account_job_count(account_id: str):
+    account = get_row("tg_accounts", account_id)
+    if not account:
+        return None
+    _reset_account_if_needed(account)
+    new_count = int(account.get("daily_job_count") or 0) + 1
+    return _client().table("tg_accounts").update(
+        {
+            "daily_job_count": new_count,
+            "daily_job_reset_at": account.get("daily_job_reset_at") or now_iso(),
+        }
+    ).eq("id", account_id).execute().data
+
+
+def pause_account(account_id: str, reason: str):
+    return _client().table("tg_accounts").update(
+        {
+            "is_active": False,
+            "risk_status": "paused",
+            "risk_reason": reason,
+            "last_error": reason,
+        }
+    ).eq("id", account_id).execute().data
+
+
+def clear_account_risk(account_id: str):
+    return _client().table("tg_accounts").update(
+        {
+            "risk_status": "active",
+            "risk_reason": "",
+        }
+    ).eq("id", account_id).execute().data
+
+
 def get_campaign_runs(campaign_id: str, limit: int = 20):
     return get_campaign_runs_page(campaign_id, limit=limit, offset=0)
 

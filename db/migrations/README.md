@@ -11,3 +11,4 @@ Order:
 5. `0005_content_rls.sql`
 6. `0006_aux_rls.sql`
 7. `0007_fix_content_uuid_schema.sql`
+8. `0008_anti_ban_guard.sql`

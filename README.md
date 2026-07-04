@@ -53,6 +53,7 @@ Optional:
    5. `db/migrations/0005_content_rls.sql`
    6. `db/migrations/0006_aux_rls.sql`
    7. `db/migrations/0007_fix_content_uuid_schema.sql`
+   8. `db/migrations/0008_anti_ban_guard.sql`
 6. Enable the auth provider you want to use.
 7. Create the first user or set bootstrap env vars for auto-owner creation.
 

@@ -21,6 +21,7 @@ Làm đúng theo thứ tự dưới đây.
    - `db/migrations/0005_content_rls.sql`
    - `db/migrations/0006_aux_rls.sql`
    - `db/migrations/0007_fix_content_uuid_schema.sql`
+   - `db/migrations/0008_anti_ban_guard.sql`
 9. Vào `Authentication` -> `Providers`.
 10. Bật provider bạn muốn dùng.
 11. Tạo user đầu tiên bằng `Authentication` -> `Users` hoặc set bootstrap env ở Render.

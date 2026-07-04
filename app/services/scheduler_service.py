@@ -6,6 +6,7 @@ from app.repositories.content_repo import (
     create_event,
     insert_row,
     list_due_campaigns,
+    pick_account_for_job,
     now_iso,
     update_campaign,
 )
@@ -61,6 +62,7 @@ def enqueue_due_campaigns():
             {
                 "job_type": "run_campaign",
                 "campaign_id": campaign["id"],
+                "account_id": (pick_account_for_job() or {}).get("id"),
                 "status": "pending",
                 "priority": 100,
                 "payload": {"campaign_id": campaign["id"], "campaign_run_id": run_row["id"]},

@@ -6,7 +6,7 @@
 - [ ] Save `SUPABASE_URL`
 - [ ] Save `SUPABASE_SERVICE_ROLE_KEY`
 - [ ] Save `SUPABASE_DB_URL`
-- [ ] Run migrations `0001` through `0007`
+- [ ] Run migrations `0001` through `0008`
 - [ ] Enable Auth provider
 - [ ] Bootstrap the first owner
 
