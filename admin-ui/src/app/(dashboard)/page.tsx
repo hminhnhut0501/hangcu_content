@@ -9,6 +9,7 @@ import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CircularProgress from "@mui/material/CircularProgress";
+import Chip from "@mui/material/Chip";
 
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -16,20 +17,47 @@ import SendIcon from '@mui/icons-material/Send';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
+import ShieldIcon from '@mui/icons-material/Shield';
+import MemoryIcon from '@mui/icons-material/Memory';
+import UpdateIcon from '@mui/icons-material/Update';
+
+type HealthSnapshot = {
+  ok: boolean;
+  ts?: string;
+  worker?: { worker_id?: string; ts?: string; status?: string; detail?: Record<string, unknown> } | null;
+  scheduler?: { worker_id?: string; ts?: string; status?: string; detail?: Record<string, unknown> } | null;
+  counts?: {
+    groups?: number;
+    topics?: number;
+    campaigns?: number;
+    accounts?: number;
+    pending_jobs?: number;
+    running_jobs?: number;
+    recent_events?: number;
+    recent_jobs?: number;
+  };
+  safety?: {
+    active_accounts?: number;
+    paused_accounts?: number;
+    risky_accounts?: number;
+    daily_limit_exceeded?: number;
+  };
+};
 
 export default function Dashboard() {
-  const { data, error, isLoading } = useSWR('/api/dashboard/summary', fetcher);
+  const { data, error, isLoading } = useSWR('/api/dashboard/summary', fetcher, { refreshInterval: 30000 });
+  const { data: health } = useSWR<HealthSnapshot>('/api/internal/health', fetcher, { refreshInterval: 15000 });
 
   if (isLoading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><CircularProgress /></Box>;
   }
 
   const summaryData = data && !error ? data : {
-    groups: 12,
-    topics: 5,
-    campaigns: 8,
-    pending_jobs: 3,
-    running_jobs: 1,
+    groups: 0,
+    topics: 0,
+    campaigns: 0,
+    pending_jobs: 0,
+    running_jobs: 0,
     failed_jobs: 0,
   };
 
@@ -42,10 +70,26 @@ export default function Dashboard() {
     { label: 'THẤT BẠI (FAILED)', value: summaryData.failed_jobs, color: '#ef4444', gradient: 'linear-gradient(135deg, #f87171 0%, #dc2626 100%)', bgcolor: '#fee2e2', icon: <ErrorOutlineIcon sx={{ color: '#fff' }} /> },
   ];
 
+  const workerStatus = String(health?.worker?.status || 'unknown');
+  const schedulerStatus = String(health?.scheduler?.status || 'unknown');
+  const statusTone = (value: string): 'default' | 'error' | 'info' | 'success' | 'warning' => {
+    if (value === 'busy' || value === 'running') return 'success';
+    if (value === 'idle') return 'info';
+    if (value === 'error') return 'error';
+    return 'default';
+  };
+
   return (
     <Box>
-      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
-        Tổng quan
+      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+        Tổng quan vận hành
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        Trạng thái thật từ backend, không còn số liệu demo.
+      </Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2 }}>
+        <UpdateIcon fontSize="inherit" />
+        Health live refresh tự động từ /api/internal/health
       </Typography>
 
       <Grid container spacing={3}>
@@ -97,6 +141,51 @@ export default function Dashboard() {
             </Card>
           </Grid>
         ))}
+
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card sx={{ borderRadius: 4, border: '1px solid rgba(226, 232, 240, 0.8)', height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                <Box sx={{ width: 44, height: 44, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)' }}>
+                  <MemoryIcon sx={{ color: '#fff' }} />
+                </Box>
+                <Box>
+                  <Typography variant="overline" sx={{ fontWeight: 700, color: '#64748b' }}>HEALTH LIVE</Typography>
+                  <Typography variant="body2" color="text.secondary">Worker, scheduler, queue và account safety</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                <Chip label={`worker: ${workerStatus}`} color={statusTone(workerStatus)} />
+                <Chip label={`scheduler: ${schedulerStatus}`} color={statusTone(schedulerStatus)} />
+                <Chip label={`accounts: ${health?.counts?.accounts ?? 0}`} variant="outlined" />
+              </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 2 }}>
+                <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8fafc' }}>
+                  <Typography variant="caption" color="text.secondary">Pending jobs</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{health?.counts?.pending_jobs ?? 0}</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8fafc' }}>
+                  <Typography variant="caption" color="text.secondary">Running jobs</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{health?.counts?.running_jobs ?? 0}</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8fafc' }}>
+                  <Typography variant="caption" color="text.secondary">Active accounts</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{health?.safety?.active_accounts ?? 0}</Typography>
+                </Box>
+                <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8fafc' }}>
+                  <Typography variant="caption" color="text.secondary">Paused / risky</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{(health?.safety?.paused_accounts ?? 0) + (health?.safety?.risky_accounts ?? 0)}</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+                <ShieldIcon fontSize="small" />
+                <Typography variant="body2">
+                  Deep snapshot cập nhật lúc {health?.ts ? new Date(health.ts).toLocaleString('vi-VN', { hour12: false }) : 'chưa có dữ liệu'}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
     </Box>
   );

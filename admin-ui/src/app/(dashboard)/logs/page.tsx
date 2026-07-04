@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import useSWR from 'swr';
+import { fetcher } from '../../../lib/api';
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
@@ -11,31 +13,45 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Chip from "@mui/material/Chip";
+import type { ChipProps } from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
+type LogRow = {
+  id: number;
+  created_at: string;
+  level: string;
+  code: string;
+  message: string;
+  entity_type?: string | null;
+  entity_id?: string | null;
+};
 
-// MOCK DATA for previewing UI since backend is down
-const mockLogs = [
-  { id: 1, timestamp: '2026-07-04 14:05:00', level: 'ERROR', message: 'Failed to post message to target group (Telegram flood wait)', entity: 'camp_1' },
-  { id: 2, timestamp: '2026-07-04 13:30:15', level: 'INFO', message: 'Successfully forwarded 5 messages to Crypto VIP', entity: 'proj_2' },
-  { id: 3, timestamp: '2026-07-04 12:00:00', level: 'WARNING', message: 'Rate limit approaching, delayed next post by 60s', entity: 'camp_3' },
-  { id: 4, timestamp: '2026-07-04 10:15:30', level: 'INFO', message: 'Started background worker', entity: 'system' },
-];
+function formatTime(value: string) {
+  try {
+    return new Date(value).toLocaleString('vi-VN', { hour12: false });
+  } catch {
+    return value;
+  }
+}
 
 export default function LogsPage() {
+  const { data, isLoading, error } = useSWR<LogRow[]>('/api/logs?limit=100', fetcher);
   const [levelFilter, setLevelFilter] = useState('ALL');
   const [search, setSearch] = useState('');
 
-  const displayLogs = mockLogs.filter(log => {
-    if (levelFilter !== 'ALL' && log.level !== levelFilter) return false;
-    if (search && !log.message.toLowerCase().includes(search.toLowerCase())) return false;
+  const displayLogs = (data || []).filter((log) => {
+    if (levelFilter !== 'ALL' && String(log.level || '').toUpperCase() !== levelFilter) return false;
+    if (search) {
+      const haystack = [log.message, log.code, log.entity_type, log.entity_id].join(' ').toLowerCase();
+      if (!haystack.includes(search.toLowerCase())) return false;
+    }
     return true;
   });
 
-  const getLevelColor = (level: string) => {
+  const getLevelColor = (level: string): ChipProps['color'] => {
     switch (level) {
       case 'ERROR': return 'error';
       case 'WARNING': return 'warning';
@@ -47,9 +63,14 @@ export default function LogsPage() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
           Nhật ký hoạt động
-        </Typography>
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Dữ liệu thật từ `content_events`.
+          </Typography>
+        </Box>
       </Box>
 
       <Card sx={{ mb: 3, p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
@@ -96,23 +117,30 @@ export default function LogsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {displayLogs.map((log) => (
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={4} align="center" sx={{ py: 5 }}>
+                    <Typography color="text.secondary">Đang tải logs...</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && displayLogs.map((log) => (
                 <TableRow key={log.id} hover>
                   <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                    <Typography variant="body2" color="text.secondary">{log.timestamp}</Typography>
+                    <Typography variant="body2" color="text.secondary">{formatTime(log.created_at)}</Typography>
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={log.level} 
+                      label={String(log.level || '').toUpperCase()} 
                       size="small" 
-                      color={getLevelColor(log.level) as any} 
+                      color={getLevelColor(log.level)} 
                       variant="outlined"
                       sx={{ fontWeight: 'bold' }}
                     />
                   </TableCell>
                   <TableCell>
                     <Typography variant="caption" sx={{ bgcolor: '#e2e8f0', px: 1, py: 0.5, borderRadius: 1 }}>
-                      {log.entity}
+                      {(log.entity_type || 'system') + (log.entity_id ? `:${log.entity_id}` : '')}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -120,10 +148,12 @@ export default function LogsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {displayLogs.length === 0 && (
+              {!isLoading && displayLogs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} align="center" sx={{ py: 5 }}>
-                    <Typography color="text.secondary">Không tìm thấy nhật ký nào phù hợp.</Typography>
+                    <Typography color="text.secondary">
+                      {error ? 'Không tải được nhật ký.' : 'Không có nhật ký nào phù hợp.'}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               )}

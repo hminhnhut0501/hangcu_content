@@ -13,6 +13,8 @@ class CampaignCreate(BaseModel):
     batch_size: int = 1
     delay_min: int = 1
     delay_max: int = 7
+    schedule_enabled: bool = False
+    schedule_slots: str = ""
 
 
 class CampaignUpdate(BaseModel):
@@ -31,4 +33,3 @@ class CampaignUpdate(BaseModel):
     status: str | None = None
     schedule_enabled: bool | None = None
     schedule_slots: str | None = None
-

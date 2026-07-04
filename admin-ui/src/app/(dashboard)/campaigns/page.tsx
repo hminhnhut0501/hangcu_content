@@ -15,13 +15,11 @@ import TableRow from "@mui/material/TableRow";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Chip from "@mui/material/Chip";
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Grid from "@mui/material/Grid";
 import CardContent from "@mui/material/CardContent";
 import AddIcon from '@mui/icons-material/Add';
-import CircularProgress from '@mui/material/CircularProgress';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import Dialog from '@mui/material/Dialog';
@@ -31,27 +29,50 @@ import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import MenuItem from '@mui/material/MenuItem';
 
 import SendIcon from '@mui/icons-material/Send';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import GroupsIcon from '@mui/icons-material/Groups';
 
+type CampaignRow = {
+  id: string;
+  title: string;
+  target_link?: string | null;
+  caption?: string | null;
+  status?: string | null;
+  schedule_enabled?: boolean | null;
+  schedule_slots?: string | null;
+};
+
+type TopicRow = {
+  id: string;
+  name: string;
+};
+
 export default function CampaignsPage() {
   const { data: campaigns, error, isLoading, mutate } = useSWR('/api/campaigns?limit=100', fetcher);
+  const { data: topics } = useSWR('/api/topics?limit=200', fetcher);
   const [toast, setToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({ show: false, msg: '', type: 'success' });
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<CampaignRow | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-
-  const handleRun = async (id: string) => {
-    try {
-      await fetchApi(`/api/campaigns/${id}/run`, { method: 'POST' });
-      setToast({ show: true, msg: 'Đã đưa chiến dịch vào hàng đợi chạy!', type: 'success' });
-      mutate();
-    } catch (err) {
-      setToast({ show: true, msg: 'Lỗi khi chạy chiến dịch.', type: 'error' });
-    }
-  };
+  const [createForm, setCreateForm] = useState({
+    topic_id: '',
+    title: '',
+    target_link: '',
+    caption: '',
+    source_start_link: '',
+    source_end_link: '',
+    follow_latest: true,
+    group_mode: 'keep',
+    order_mode: 'auto',
+    batch_size: 1,
+    delay_min: 1,
+    delay_max: 7,
+    schedule_enabled: false,
+    schedule_slots: '',
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xoá chiến dịch này?')) return;
@@ -59,49 +80,101 @@ export default function CampaignsPage() {
       await fetchApi(`/api/campaigns/${id}`, { method: 'DELETE' });
       setToast({ show: true, msg: 'Xoá thành công.', type: 'success' });
       mutate();
-    } catch (err) {
+    } catch {
       setToast({ show: true, msg: 'Lỗi khi xoá.', type: 'error' });
     }
   };
 
+  const updateEditingItem = (patch: Partial<CampaignRow>) => {
+    setEditingItem((current) => current ? { ...current, ...patch } : current);
+  };
+
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingItem) return;
     try {
       await fetchApi(`/api/campaigns/${editingItem.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           title: editingItem.title,
           target_link: editingItem.target_link,
+          caption: editingItem.caption,
           schedule_enabled: editingItem.schedule_enabled,
+          schedule_slots: editingItem.schedule_slots || '',
         })
       });
       setToast({ show: true, msg: 'Cập nhật thành công.', type: 'success' });
       setEditingItem(null);
       mutate();
-    } catch (err) {
+    } catch {
       setToast({ show: true, msg: 'Cập nhật thất bại.', type: 'error' });
     }
   };
 
-  const mockCampaigns = [
-    { id: 'camp_1', title: 'Chiến dịch Auto Post Telegram', target_link: 'https://t.me/channel1', status: 'active', schedule_enabled: true },
-    { id: 'camp_2', title: 'Chiến dịch Forward Tin Tức', target_link: 'https://t.me/news', status: 'draft', schedule_enabled: false },
-    { id: 'camp_3', title: 'Khuyến mãi cuối tuần', target_link: 'https://t.me/deals', status: 'active', schedule_enabled: true },
-  ];
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createForm.topic_id) {
+      setToast({ show: true, msg: 'Vui lòng chọn topic.', type: 'error' });
+      return;
+    }
+    try {
+      await fetchApi(`/api/campaigns/topics/${createForm.topic_id}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: createForm.title,
+          target_link: createForm.target_link || null,
+          caption: createForm.caption || null,
+          source_start_link: createForm.source_start_link || null,
+          source_end_link: createForm.source_end_link || null,
+          follow_latest: createForm.follow_latest,
+          group_mode: createForm.group_mode,
+          order_mode: createForm.order_mode,
+          batch_size: Number(createForm.batch_size || 1),
+          delay_min: Number(createForm.delay_min || 1),
+          delay_max: Number(createForm.delay_max || 7),
+          schedule_enabled: createForm.schedule_enabled,
+          schedule_slots: createForm.schedule_slots || '',
+        })
+      });
+      setToast({ show: true, msg: 'Tạo campaign thành công.', type: 'success' });
+      setIsCreating(false);
+      setCreateForm({
+        topic_id: '',
+        title: '',
+        target_link: '',
+        caption: '',
+        source_start_link: '',
+        source_end_link: '',
+        follow_latest: true,
+        group_mode: 'keep',
+        order_mode: 'auto',
+        batch_size: 1,
+        delay_min: 1,
+        delay_max: 7,
+        schedule_enabled: false,
+        schedule_slots: '',
+      });
+      mutate();
+    } catch {
+      setToast({ show: true, msg: 'Tạo campaign thất bại.', type: 'error' });
+    }
+  };
 
-  const displayCampaigns = (!campaigns || error) ? mockCampaigns : campaigns;
+  const displayCampaigns: CampaignRow[] = campaigns || [];
+  const activeCampaigns = displayCampaigns.filter((c) => ['active', 'scheduled', 'queued', 'running'].includes(String(c.status || '')));
+  const scheduledCampaigns = displayCampaigns.filter((c) => Boolean(c.schedule_enabled));
 
   const topStats = [
     { label: 'CAMPAIGN', value: displayCampaigns.length, color: '#0ea5e9', gradient: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)', bgcolor: '#e0f2fe', icon: <SendIcon sx={{ color: '#fff' }} /> },
-    { label: 'ĐANG CHẠY', value: displayCampaigns.filter((c:any) => c.status === 'active').length, color: '#8b5cf6', gradient: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)', bgcolor: '#ede9fe', icon: <PlayCircleIcon sx={{ color: '#fff' }} /> },
-    { label: 'ĐÃ GỬI', value: 0, color: '#f59e0b', gradient: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', bgcolor: '#fef3c7', icon: <DoneAllIcon sx={{ color: '#fff' }} /> },
-    { label: 'PREVIEW NHẬN', value: 314, color: '#3b82f6', gradient: 'linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)', bgcolor: '#eff6ff', icon: <GroupsIcon sx={{ color: '#fff' }} /> },
+    { label: 'ĐANG CHẠY', value: activeCampaigns.length, color: '#8b5cf6', gradient: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)', bgcolor: '#ede9fe', icon: <PlayCircleIcon sx={{ color: '#fff' }} /> },
+    { label: 'ĐÃ LÊN LỊCH', value: scheduledCampaigns.length, color: '#f59e0b', gradient: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', bgcolor: '#fef3c7', icon: <DoneAllIcon sx={{ color: '#fff' }} /> },
+    { label: 'TOPICS', value: topics?.length || 0, color: '#3b82f6', gradient: 'linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)', bgcolor: '#eff6ff', icon: <GroupsIcon sx={{ color: '#fff' }} /> },
   ];
 
   return (
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
-        Dashboard vận hành: nhóm nhận link, đơn hàng, coupon, sale và nội dung bot.
+        Campaign workspace vận hành thật từ backend.
       </Typography>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -159,7 +232,22 @@ export default function CampaignsPage() {
               startIcon={<AddIcon />}
               onClick={() => {
                 setIsCreating(true);
-                setEditingItem({ title: '', target_link: '' });
+                setCreateForm({
+                  topic_id: (topics && topics[0]?.id) || '',
+                  title: '',
+                  target_link: '',
+                  caption: '',
+                  source_start_link: '',
+                  source_end_link: '',
+                  follow_latest: true,
+                  group_mode: 'keep',
+                  order_mode: 'auto',
+                  batch_size: 1,
+                  delay_min: 1,
+                  delay_max: 7,
+                  schedule_enabled: false,
+                  schedule_slots: '',
+                });
               }}
               sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', px: 3, bgcolor: '#0088ff' }}
             >
@@ -167,10 +255,9 @@ export default function CampaignsPage() {
             </Button>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Chip label="Preview: 314 người" size="small" sx={{ bgcolor: '#f1f5f9', fontWeight: 'bold' }} />
-            <Chip label={`Active: ${displayCampaigns.filter((c:any) => c.status === 'active').length}`} size="small" sx={{ bgcolor: '#dcfce7', color: '#166534', fontWeight: 'bold' }} />
-            <Chip label="Hết hạn: 0" size="small" sx={{ bgcolor: '#ffedd5', color: '#9a3412', fontWeight: 'bold' }} />
-            <Chip label="Chưa mua: 233" size="small" sx={{ bgcolor: '#f1f5f9', color: '#475569', fontWeight: 'bold' }} />
+            <Chip label={`Campaign: ${displayCampaigns.length}`} size="small" sx={{ bgcolor: '#f1f5f9', fontWeight: 'bold' }} />
+            <Chip label={`Scheduled: ${scheduledCampaigns.length}`} size="small" sx={{ bgcolor: '#dcfce7', color: '#166534', fontWeight: 'bold' }} />
+            <Chip label={`Topics: ${topics?.length || 0}`} size="small" sx={{ bgcolor: '#eff6ff', color: '#1d4ed8', fontWeight: 'bold' }} />
           </Box>
         </Box>
 
@@ -186,7 +273,14 @@ export default function CampaignsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {displayCampaigns.map((camp: any) => (
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                    <Typography color="text.secondary">Đang tải campaign...</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && displayCampaigns.map((camp) => (
                 <TableRow key={camp.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: '#0f172a' }}>{camp.title || 'No title'}</Typography>
@@ -196,14 +290,19 @@ export default function CampaignsPage() {
                     <Typography variant="body2" sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {camp.target_link || '-'}
                     </Typography>
+                    {camp.caption && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {camp.caption}
+                      </Typography>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={camp.status} 
+                      label={camp.status || 'draft'} 
                       size="small"
                       sx={{ 
-                        bgcolor: camp.status === 'active' ? '#dcfce7' : '#f1f5f9',
-                        color: camp.status === 'active' ? '#166534' : '#475569',
+                        bgcolor: ['active', 'scheduled', 'queued', 'running'].includes(String(camp.status || '')) ? '#dcfce7' : '#f1f5f9',
+                        color: ['active', 'scheduled', 'queued', 'running'].includes(String(camp.status || '')) ? '#166534' : '#475569',
                         fontWeight: 'bold',
                         fontSize: '0.7rem'
                       }}
@@ -223,10 +322,12 @@ export default function CampaignsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {(!displayCampaigns || displayCampaigns.length === 0) && (
+              {!isLoading && displayCampaigns.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                    <Typography color="text.secondary" variant="body2">Chưa có dữ liệu. Bấm nút thêm mới để tạo.</Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      {error ? 'Không tải được campaign.' : 'Chưa có dữ liệu. Bấm nút thêm mới để tạo.'}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -235,37 +336,94 @@ export default function CampaignsPage() {
         </TableContainer>
       </Card>
 
-      <Dialog open={!!editingItem} onClose={() => setEditingItem(null)} fullWidth maxWidth="sm">
-        <form onSubmit={handleSaveEdit}>
-          <DialogTitle>Sửa chiến dịch</DialogTitle>
+      <Dialog open={isCreating || !!editingItem} onClose={() => { setEditingItem(null); setIsCreating(false); }} fullWidth maxWidth="sm">
+        <form onSubmit={isCreating ? handleCreate : handleSaveEdit}>
+          <DialogTitle>{isCreating ? 'Tạo campaign' : 'Sửa chiến dịch'}</DialogTitle>
           <DialogContent dividers>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+              {isCreating && (
+                <TextField
+                  select
+                  label="Topic"
+                  fullWidth
+                  value={createForm.topic_id}
+                  onChange={e => setCreateForm({ ...createForm, topic_id: e.target.value })}
+                >
+                  {(topics || []).map((topic: TopicRow) => (
+                    <MenuItem key={topic.id} value={topic.id}>{topic.name}</MenuItem>
+                  ))}
+                </TextField>
+              )}
               <TextField 
                 label="Tên chiến dịch" 
                 fullWidth 
-                value={editingItem?.title || ''}
-                onChange={e => setEditingItem({...editingItem, title: e.target.value})}
+                value={isCreating ? createForm.title : (editingItem?.title || '')}
+                onChange={e => isCreating ? setCreateForm({ ...createForm, title: e.target.value }) : updateEditingItem({ title: e.target.value })}
               />
               <TextField 
                 label="Target Link" 
                 fullWidth 
-                value={editingItem?.target_link || ''}
-                onChange={e => setEditingItem({...editingItem, target_link: e.target.value})}
+                value={isCreating ? createForm.target_link : (editingItem?.target_link || '')}
+                onChange={e => isCreating ? setCreateForm({ ...createForm, target_link: e.target.value }) : updateEditingItem({ target_link: e.target.value })}
               />
-              <FormControlLabel 
-                control={
-                  <Switch 
-                    checked={editingItem?.schedule_enabled || false}
-                    onChange={e => setEditingItem({...editingItem, schedule_enabled: e.target.checked})}
+              {isCreating ? (
+                <>
+                  <TextField label="Caption" fullWidth multiline minRows={3} value={createForm.caption} onChange={e => setCreateForm({ ...createForm, caption: e.target.value })} />
+                  <TextField label="Source start link" fullWidth value={createForm.source_start_link} onChange={e => setCreateForm({ ...createForm, source_start_link: e.target.value })} />
+                  <TextField label="Source end link" fullWidth value={createForm.source_end_link} onChange={e => setCreateForm({ ...createForm, source_end_link: e.target.value })} />
+                  <TextField label="Batch size" type="number" fullWidth value={createForm.batch_size} onChange={e => setCreateForm({ ...createForm, batch_size: Number(e.target.value) })} />
+                  <TextField label="Delay min" type="number" fullWidth value={createForm.delay_min} onChange={e => setCreateForm({ ...createForm, delay_min: Number(e.target.value) })} />
+                  <TextField label="Delay max" type="number" fullWidth value={createForm.delay_max} onChange={e => setCreateForm({ ...createForm, delay_max: Number(e.target.value) })} />
+                  <TextField label="Schedule slots" fullWidth value={createForm.schedule_slots} onChange={e => setCreateForm({ ...createForm, schedule_slots: e.target.value })} placeholder="09:00,13:30" />
+                  <TextField select label="Group mode" fullWidth value={createForm.group_mode} onChange={e => setCreateForm({ ...createForm, group_mode: e.target.value })}>
+                    <MenuItem value="keep">keep</MenuItem>
+                    <MenuItem value="merge">merge</MenuItem>
+                    <MenuItem value="rotate">rotate</MenuItem>
+                  </TextField>
+                  <TextField select label="Order mode" fullWidth value={createForm.order_mode} onChange={e => setCreateForm({ ...createForm, order_mode: e.target.value })}>
+                    <MenuItem value="auto">auto</MenuItem>
+                    <MenuItem value="newest">newest</MenuItem>
+                    <MenuItem value="oldest">oldest</MenuItem>
+                  </TextField>
+                  <FormControlLabel 
+                    control={
+                      <Switch 
+                        checked={createForm.follow_latest}
+                        onChange={e => setCreateForm({ ...createForm, follow_latest: e.target.checked })}
+                      />
+                    } 
+                    label="Follow latest" 
                   />
-                } 
-                label="Bật lịch gửi tự động" 
-              />
+                  <FormControlLabel 
+                    control={
+                      <Switch 
+                        checked={createForm.schedule_enabled}
+                        onChange={e => setCreateForm({ ...createForm, schedule_enabled: e.target.checked })}
+                      />
+                    } 
+                    label="Bật lịch gửi tự động" 
+                  />
+                </>
+              ) : (
+                <>
+                  <TextField label="Caption" fullWidth multiline minRows={3} value={editingItem?.caption || ''} onChange={e => updateEditingItem({ caption: e.target.value })} />
+                  <TextField label="Schedule slots" fullWidth value={editingItem?.schedule_slots || ''} onChange={e => updateEditingItem({ schedule_slots: e.target.value })} placeholder="09:00,13:30" />
+                  <FormControlLabel 
+                    control={
+                      <Switch 
+                        checked={editingItem?.schedule_enabled || false}
+                        onChange={e => updateEditingItem({ schedule_enabled: e.target.checked })}
+                      />
+                    } 
+                    label="Bật lịch gửi tự động" 
+                  />
+                </>
+              )}
             </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setEditingItem(null)}>Huỷ</Button>
-            <Button type="submit" variant="contained">Lưu thay đổi</Button>
+            <Button onClick={() => { setEditingItem(null); setIsCreating(false); }}>Huỷ</Button>
+            <Button type="submit" variant="contained">{isCreating ? 'Tạo mới' : 'Lưu thay đổi'}</Button>
           </DialogActions>
         </form>
       </Dialog>

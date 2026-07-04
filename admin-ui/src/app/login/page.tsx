@@ -36,8 +36,9 @@ export default function Login() {
       } else {
         setError(res.detail || 'Đăng nhập thất bại.');
       }
-    } catch (err: any) {
-      setError(err.message || 'Không thể kết nối đến máy chủ.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Không thể kết nối đến máy chủ.';
+      setError(message);
     } finally {
       setLoading(false);
     }

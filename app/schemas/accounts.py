@@ -20,4 +20,7 @@ class AccountUpdate(BaseModel):
     status: str | None = None
     last_checked_at: str | None = None
     last_error: str | None = None
-
+    risk_status: str | None = None
+    risk_reason: str | None = None
+    daily_job_limit: int | None = None
+    daily_job_count: int | None = None

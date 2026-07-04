@@ -11,8 +11,10 @@ router = APIRouter()
 def get_summary():
     return DashboardSummary(
         groups=count_rows("content_groups"),
+        auto_groups=count_rows("content_groups", filters={"auto_enabled": True}),
         topics=count_rows("content_topics"),
         campaigns=count_rows("content_campaigns"),
+        scheduled_campaigns=count_rows("content_campaigns", filters={"schedule_enabled": True}),
         pending_jobs=count_rows("queue_jobs", filters={"status": "pending"}),
         running_jobs=count_rows("queue_jobs", filters={"status": "running"}),
         failed_jobs=count_rows("queue_jobs", filters={"status": "failed"}),

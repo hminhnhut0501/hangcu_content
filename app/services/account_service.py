@@ -75,3 +75,18 @@ async def test_account_connection(account: dict) -> dict:
             except Exception:
                 pass
 
+
+def build_telegram_client(account: dict):
+    account_id = account.get("id")
+    api_id = account.get("api_id") or os.getenv("TG_API_ID")
+    api_hash = account.get("api_hash") or os.getenv("TG_API_HASH")
+    session_ref = account.get("session_ref") or os.getenv("TG_STRING_SESSION")
+
+    if TelegramClient is None or StringSession is None:
+        raise RuntimeError("Telethon unavailable")
+    if not api_id or not api_hash:
+        raise RuntimeError("Missing TG credentials")
+
+    if session_ref and str(session_ref).startswith("1"):
+        return TelegramClient(StringSession(str(session_ref)), int(api_id), str(api_hash))
+    return TelegramClient(str(session_ref or f"/tmp/{account_id}.session"), int(api_id), str(api_hash))

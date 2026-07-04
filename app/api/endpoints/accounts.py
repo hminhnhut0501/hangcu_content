@@ -6,8 +6,8 @@ from app.repositories.system_repo import (
     delete_account as repo_delete_account,
     get_account_by_id,
     list_accounts as repo_list_accounts,
-    resume_account as repo_resume_account,
     update_account as repo_update_account,
+    resume_account as repo_resume_account,
 )
 from app.schemas.accounts import AccountCreate, AccountUpdate
 from app.schemas.common import StatusResponse
@@ -64,5 +64,26 @@ def resume_account_api(account_id: str):
         "account_resumed",
         "Telegram account resumed manually",
         {"account_id": account_id},
+    )
+    return {"ok": True}
+
+
+@router.post("/{account_id}/pause", response_model=StatusResponse)
+def pause_account_api(account_id: str, reason: str = "manual_pause"):
+    row = repo_update_account(
+        account_id,
+        {
+            "is_active": False,
+            "risk_status": "paused",
+            "risk_reason": reason,
+        },
+    )
+    if not row:
+        return {"ok": False}
+    create_event(
+        "warning",
+        "account_paused",
+        "Telegram account paused manually",
+        {"account_id": account_id, "reason": reason},
     )
     return {"ok": True}

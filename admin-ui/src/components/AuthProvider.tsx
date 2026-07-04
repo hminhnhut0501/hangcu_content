@@ -35,19 +35,18 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   
   // Use SWR to fetch user profile, disable automatic retries on 401
-  const { data, error, isLoading, mutate } = useSWR('/api/auth/me', fetcher, {
+  const { data, isLoading, mutate } = useSWR('/api/auth/me', fetcher, {
     shouldRetryOnError: false,
   });
 
-  const [hasDevBypass, setHasDevBypass] = React.useState(false);
+  const [hasDevBypass] = React.useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('dev_bypass') === 'true';
+  });
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setHasDevBypass(localStorage.getItem('dev_bypass') === 'true');
-    }
-  }, []);
-
-  const user = data?.user || (hasDevBypass ? { id: 'dev', email: 'dev@local', role: 'owner', full_name: 'Dev Bypass' } : null);
+  const user = React.useMemo(() => {
+    return data?.user || (hasDevBypass ? { id: 'dev', email: 'dev@local', role: 'owner', full_name: 'Dev Bypass' } : null);
+  }, [data?.user, hasDevBypass]);
   const isAuthPage = pathname === '/login';
 
   useEffect(() => {

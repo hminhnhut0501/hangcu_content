@@ -8,19 +8,18 @@ import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import List from '@mui/material/List';
 import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   FolderOpen,
+  Layers3,
   Send,
   Settings,
   Activity,
@@ -65,6 +64,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 const NAVIGATION = [
   { text: 'Tổng quan', href: '/', icon: <LayoutDashboard size={20} />, badge: '369' },
   { text: 'Dự án & Kênh', href: '/projects', icon: <FolderOpen size={20} /> },
+  { text: 'Topics', href: '/topics', icon: <Layers3 size={20} /> },
   { text: 'Chiến dịch', href: '/campaigns', icon: <Send size={20} />, badge: '12' },
   { type: 'divider', text: 'CẤU HÌNH' },
   { text: 'Hệ thống & TK', href: '/settings', icon: <Settings size={20} /> },

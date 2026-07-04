@@ -18,7 +18,6 @@ import Chip from "@mui/material/Chip";
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import CircularProgress from '@mui/material/CircularProgress';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import Dialog from '@mui/material/Dialog';
@@ -29,10 +28,18 @@ import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
+type GroupRow = {
+  id?: string;
+  name: string;
+  source_link?: string | null;
+  target_link?: string | null;
+  auto_enabled?: boolean | null;
+};
+
 export default function ProjectsPage() {
-  const { data: groups, error, isLoading, mutate } = useSWR('/api/groups?limit=100', fetcher);
+  const { data: groups, mutate } = useSWR<GroupRow[]>('/api/groups?limit=100', fetcher);
   const [toast, setToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({ show: false, msg: '', type: 'success' });
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<GroupRow | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const handleDelete = async (id: string) => {
@@ -41,13 +48,14 @@ export default function ProjectsPage() {
       await fetchApi(`/api/groups/${id}`, { method: 'DELETE' });
       setToast({ show: true, msg: 'Xoá thành công.', type: 'success' });
       mutate();
-    } catch (err) {
+    } catch {
       setToast({ show: true, msg: 'Lỗi khi xoá.', type: 'error' });
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingItem) return;
     try {
       if (isCreating) {
         await fetchApi(`/api/groups`, {
@@ -59,6 +67,7 @@ export default function ProjectsPage() {
           })
         });
       } else {
+        if (!editingItem.id) return;
         await fetchApi(`/api/groups/${editingItem.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
@@ -73,17 +82,12 @@ export default function ProjectsPage() {
       setEditingItem(null);
       setIsCreating(false);
       mutate();
-    } catch (err) {
+    } catch {
       setToast({ show: true, msg: 'Lưu thất bại.', type: 'error' });
     }
   };
 
-  const mockGroups = [
-    { id: 'proj_1', name: 'Dự án Phim Ảnh Telegram', source_link: 'https://t.me/movies_source', target_link: 'https://t.me/movies_target', auto_enabled: true },
-    { id: 'proj_2', name: 'Nhóm Crypto', source_link: 'https://t.me/crypto_vip', target_link: 'https://t.me/crypto_free', auto_enabled: false },
-  ];
-
-  const displayGroups = (!groups || error) ? mockGroups : groups;
+  const displayGroups: GroupRow[] = groups || [];
 
   return (
     <Box>
@@ -116,8 +120,8 @@ export default function ProjectsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {displayGroups.map((group: any) => (
-                <TableRow key={group.id} hover>
+              {displayGroups.map((group) => (
+                <TableRow key={group.id || group.name} hover>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{group.name || 'No name'}</Typography>
                     <Typography variant="caption" color="text.secondary">{group.id}</Typography>
@@ -146,7 +150,7 @@ export default function ProjectsPage() {
                     }} title="Sửa">
                       <EditIcon />
                     </IconButton>
-                    <IconButton color="error" onClick={() => handleDelete(group.id)} title="Xoá">
+                    <IconButton color="error" onClick={() => group.id && handleDelete(group.id)} title="Xoá">
                       <DeleteIcon />
                     </IconButton>
                   </TableCell>
@@ -174,26 +178,26 @@ export default function ProjectsPage() {
                 fullWidth 
                 required
                 value={editingItem?.name || ''}
-                onChange={e => setEditingItem({...editingItem, name: e.target.value})}
+                onChange={e => editingItem && setEditingItem({ ...editingItem, name: e.target.value })}
               />
               <TextField 
                 label="Nguồn (Source Link)" 
                 fullWidth 
                 value={editingItem?.source_link || ''}
-                onChange={e => setEditingItem({...editingItem, source_link: e.target.value})}
+                onChange={e => editingItem && setEditingItem({ ...editingItem, source_link: e.target.value })}
               />
               <TextField 
                 label="Đích (Target Link)" 
                 fullWidth 
                 value={editingItem?.target_link || ''}
-                onChange={e => setEditingItem({...editingItem, target_link: e.target.value})}
+                onChange={e => editingItem && setEditingItem({ ...editingItem, target_link: e.target.value })}
               />
               {!isCreating && (
                 <FormControlLabel 
                   control={
                     <Switch 
                       checked={editingItem?.auto_enabled || false}
-                      onChange={e => setEditingItem({...editingItem, auto_enabled: e.target.checked})}
+                      onChange={e => editingItem && setEditingItem({ ...editingItem, auto_enabled: e.target.checked })}
                     />
                   } 
                   label="Tự động Push (Auto Push)" 

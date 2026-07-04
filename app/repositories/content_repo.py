@@ -389,3 +389,47 @@ def get_queue_job(job_id: str):
         or []
     )
     return rows[0] if rows else None
+
+
+def list_auto_groups():
+    return (
+        _client()
+        .table("content_groups")
+        .select("*")
+        .eq("auto_enabled", True)
+        .eq("status", "active")
+        .order("updated_at", desc=False)
+        .execute()
+        .data
+        or []
+    )
+
+
+def list_group_topics(group_id: str):
+    return (
+        _client()
+        .table("content_topics")
+        .select("*")
+        .eq("group_id", group_id)
+        .eq("status", "active")
+        .order("sort_order", desc=False)
+        .order("created_at", desc=False)
+        .execute()
+        .data
+        or []
+    )
+
+
+def list_group_campaigns(group_id: str):
+    return (
+        _client()
+        .table("content_campaigns")
+        .select("*")
+        .eq("group_id", group_id)
+        .eq("enabled", True)
+        .order("last_run_at", desc=False)
+        .order("created_at", desc=False)
+        .execute()
+        .data
+        or []
+    )

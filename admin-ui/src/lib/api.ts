@@ -13,7 +13,7 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   
   if (!res.ok) {
     const error = new Error(`API error: ${res.status}`);
-    (error as any).status = res.status;
+    (error as Error & { status?: number }).status = res.status;
     throw error;
   }
   

@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
-from app.repositories.content_repo import create_event, delete_row, insert_row, list_rows_filtered, pick_account_for_job, update_row
+from app.repositories.content_repo import create_event, delete_row, get_row, insert_row, list_rows_filtered, now_iso, pick_account_for_job, update_row
 from app.schemas.campaigns import CampaignCreate, CampaignUpdate
 from app.schemas.responses import DeleteResponse, EntityResponse
+from app.services.scheduler_service import schedule_fields
 
 router = APIRouter()
 
@@ -17,32 +18,59 @@ def list_campaigns(topic_id: str | None = None, q: str | None = None, limit: int
 @router.post("/topics/{topic_id}", response_model=EntityResponse)
 def create_campaign(topic_id: str, payload: CampaignCreate):
     data = payload.model_dump()
-    row = insert_row("content_campaigns", {**data, "topic_id": topic_id})
+    topic = get_row("content_topics", topic_id)
+    if not topic:
+        raise HTTPException(status_code=404, detail="topic_not_found")
+    schedule = schedule_fields(bool(data.pop("schedule_enabled", False)), str(data.pop("schedule_slots", "") or ""))
+    row = insert_row("content_campaigns", {**data, **schedule, "topic_id": topic_id, "group_id": topic["group_id"]})
     create_event("info", "campaign_created", "Campaign created", {"title": payload.title}, topic_id=topic_id, campaign_id=row["id"])
     return {"id": row["id"]}
 
 
 @router.patch("/{campaign_id}", response_model=EntityResponse)
 def update_campaign(campaign_id: str, payload: CampaignUpdate):
-    row = update_row("content_campaigns", campaign_id, payload.model_dump(exclude_none=True))
-    create_event("info", "campaign_updated", "Campaign updated", payload.model_dump(exclude_none=True), campaign_id=campaign_id)
+    data = payload.model_dump(exclude_none=True)
+    if "schedule_enabled" in data or "schedule_slots" in data:
+        current = get_row("content_campaigns", campaign_id) or {}
+        schedule_enabled = bool(data.pop("schedule_enabled", current.get("schedule_enabled", False)))
+        schedule_slots = str(data.pop("schedule_slots", current.get("schedule_slots", "")) or "")
+        data.update(schedule_fields(schedule_enabled, schedule_slots))
+    row = update_row("content_campaigns", campaign_id, data)
+    create_event("info", "campaign_updated", "Campaign updated", data, campaign_id=campaign_id)
     return {"id": row["id"]}
 
 
 @router.post("/{campaign_id}/run", response_model=EntityResponse)
 def run_campaign(campaign_id: str):
+    campaign = get_row("content_campaigns", campaign_id)
+    if not campaign:
+        raise HTTPException(status_code=404, detail="campaign_not_found")
+    run = insert_row(
+        "campaign_runs",
+        {
+            "campaign_id": campaign_id,
+            "slot_key": f"manual:{now_iso()}",
+            "scheduled_at": now_iso(),
+            "status": "queued",
+            "queued_items": 1,
+            "selected_topic_ids": [campaign.get("topic_id")],
+        },
+    )
     row = insert_row(
         "queue_jobs",
         {
             "job_type": "run_campaign",
             "campaign_id": campaign_id,
+            "group_id": campaign.get("group_id"),
+            "topic_id": campaign.get("topic_id"),
             "account_id": (pick_account_for_job() or {}).get("id"),
             "status": "pending",
             "priority": 100,
-            "payload": {"campaign_id": campaign_id},
+            "payload": {"campaign_id": campaign_id, "campaign_run_id": run["id"]},
         },
     )
-    create_event("info", "campaign_queued", "Campaign queued for run", {"job_id": row["id"]}, campaign_id=campaign_id)
+    update_row("content_campaigns", campaign_id, {"status": "queued", "last_run_at": now_iso()})
+    create_event("info", "campaign_queued", "Campaign queued for run", {"job_id": row["id"], "run_id": run["id"]}, campaign_id=campaign_id)
     return {"id": row["id"]}
 
 
