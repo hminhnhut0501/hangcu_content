@@ -12,16 +12,19 @@ def _client():
 
 
 def list_rows(table: str, *, select: str = "*", filters: dict[str, Any] | None = None, order: str | None = None):
-    query = _client().table(table).select(select)
-    for key, value in (filters or {}).items():
-        if value is None:
-            continue
-        query = query.eq(key, value)
-    if order:
-        descending = order.startswith("-")
-        column = order[1:] if descending else order
-        query = query.order(column, desc=descending)
-    return query.execute().data or []
+    try:
+        query = _client().table(table).select(select)
+        for key, value in (filters or {}).items():
+            if value is None:
+                continue
+            query = query.eq(key, value)
+        if order:
+            descending = order.startswith("-")
+            column = order[1:] if descending else order
+            query = query.order(column, desc=descending)
+        return query.execute().data or []
+    except Exception:
+        return []
 
 
 def list_rows_filtered(
@@ -34,48 +37,63 @@ def list_rows_filtered(
     limit: int | None = None,
     offset: int | None = None,
 ):
-    query = _client().table(table).select(select)
-    for key, value in (filters or {}).items():
-        if value is None:
-            continue
-        query = query.eq(key, value)
-    if search and search[1]:
-        column, term = search
-        query = query.ilike(column, f"%{term}%")
-    if order:
-        descending = order.startswith("-")
-        column = order[1:] if descending else order
-        query = query.order(column, desc=descending)
-    if limit is not None:
-        query = query.range(int(offset or 0), int(offset or 0) + int(limit) - 1)
-    return query.execute().data or []
+    try:
+        query = _client().table(table).select(select)
+        for key, value in (filters or {}).items():
+            if value is None:
+                continue
+            query = query.eq(key, value)
+        if search and search[1]:
+            column, term = search
+            query = query.ilike(column, f"%{term}%")
+        if order:
+            descending = order.startswith("-")
+            column = order[1:] if descending else order
+            query = query.order(column, desc=descending)
+        if limit is not None:
+            query = query.range(int(offset or 0), int(offset or 0) + int(limit) - 1)
+        return query.execute().data or []
+    except Exception:
+        return []
 
 
 def get_row(table: str, row_id: str, *, select: str = "*"):
-    response = _client().table(table).select(select).eq("id", row_id).limit(1).execute()
-    rows = response.data or []
-    return rows[0] if rows else None
+    try:
+        response = _client().table(table).select(select).eq("id", row_id).limit(1).execute()
+        rows = response.data or []
+        return rows[0] if rows else None
+    except Exception:
+        return None
 
 
 def insert_row(table: str, payload: dict[str, Any]):
-    return (_client().table(table).insert(payload).execute().data or [None])[0]
+    try:
+        return (_client().table(table).insert(payload).execute().data or [None])[0]
+    except Exception:
+        return None
 
 
 def update_row(table: str, row_id: str, payload: dict[str, Any]):
-    return (
-        _client()
-        .table(table)
-        .update(payload)
-        .eq("id", row_id)
-        .execute()
-        .data
-        or [None]
-    )[0]
+    try:
+        return (
+            _client()
+            .table(table)
+            .update(payload)
+            .eq("id", row_id)
+            .execute()
+            .data
+            or [None]
+        )[0]
+    except Exception:
+        return None
 
 
 def delete_row(table: str, row_id: str):
-    _client().table(table).delete().eq("id", row_id).execute()
-    return True
+    try:
+        _client().table(table).delete().eq("id", row_id).execute()
+        return True
+    except Exception:
+        return False
 
 
 def create_event(level: str, code: str, message: str, payload: dict[str, Any] | None = None, *, group_id=None, topic_id=None, campaign_id=None):
@@ -88,17 +106,23 @@ def create_event(level: str, code: str, message: str, payload: dict[str, Any] | 
         "topic_id": topic_id,
         "campaign_id": campaign_id,
     }
-    return _client().table("content_events").insert(data).execute().data
+    try:
+        return _client().table("content_events").insert(data).execute().data
+    except Exception:
+        return []
 
 
 def count_rows(table: str, *, filters: dict[str, Any] | None = None) -> int:
-    query = _client().table(table).select("id", count="exact")
-    for key, value in (filters or {}).items():
-        if value is None:
-            continue
-        query = query.eq(key, value)
-    response = query.execute()
-    return int(getattr(response, "count", 0) or 0)
+    try:
+        query = _client().table(table).select("id", count="exact")
+        for key, value in (filters or {}).items():
+            if value is None:
+                continue
+            query = query.eq(key, value)
+        response = query.execute()
+        return int(getattr(response, "count", 0) or 0)
+    except Exception:
+        return 0
 
 
 def now_iso() -> str:
