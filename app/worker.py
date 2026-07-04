@@ -2,6 +2,7 @@ import asyncio
 import os
 import random
 import re
+import sys
 import traceback
 
 from app.repositories.content_repo import (
@@ -333,6 +334,13 @@ async def loop():
 
 
 def main():
+    print(
+        f"[worker] booting pid={os.getpid()} worker_id={WORKER_ID} poll_interval={POLL_INTERVAL}",
+        file=sys.stdout,
+        flush=True,
+    )
+    _touch_worker_heartbeat(status="booting", detail={"stage": "startup", "pid": os.getpid()})
+    print("[worker] heartbeat written", file=sys.stdout, flush=True)
     asyncio.run(loop())
 
 
