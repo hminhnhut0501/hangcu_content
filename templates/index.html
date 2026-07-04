@@ -1,0 +1,1205 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_name }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    body { font-family: Inter, ui-sans-serif, system-ui; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <div x-data="appShell()" x-init="init()" class="min-h-screen">
+    <section x-show="!authenticated && bootstrapState.can_bootstrap" class="min-h-screen grid place-items-center px-6 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.10),transparent_28%),linear-gradient(180deg,#020617,#020617)]">
+      <div class="w-full max-w-4xl grid lg:grid-cols-[1.1fr_0.9fr] gap-6 rounded-[2rem] border border-cyan-500/20 bg-slate-950/80 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <div class="p-8 lg:p-10 bg-[linear-gradient(135deg,rgba(34,211,238,0.12),rgba(15,23,42,0.6))]">
+          <div class="text-xs uppercase tracking-[0.35em] text-cyan-300 font-bold">Bootstrap Console</div>
+          <h1 class="text-4xl lg:text-5xl font-black mt-3 leading-tight">Khởi tạo owner đầu tiên cho Content Hub OS</h1>
+          <p class="mt-4 text-slate-300 max-w-xl">Hệ thống chưa có owner. Sau khi tạo user Supabase Auth và gán role owner, toàn bộ Admin / Content / Scheduler sẽ hoạt động trong một vòng vận hành đầy đủ.</p>
+          <div class="mt-6 grid sm:grid-cols-3 gap-3 text-sm">
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-slate-500 text-xs uppercase tracking-[0.2em]">Owners</div>
+              <div class="text-2xl font-black mt-2" x-text="bootstrapState.owners"></div>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-slate-500 text-xs uppercase tracking-[0.2em]">Admins</div>
+              <div class="text-2xl font-black mt-2" x-text="bootstrapState.admins"></div>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-slate-500 text-xs uppercase tracking-[0.2em]">Mode</div>
+              <div class="text-2xl font-black mt-2 text-cyan-300">Bootstrap</div>
+            </div>
+          </div>
+        </div>
+        <div class="p-8 lg:p-10 bg-slate-950">
+          <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+            <div class="text-xs uppercase tracking-[0.3em] text-slate-500">Step 1</div>
+            <h2 class="text-2xl font-bold mt-2">Tạo tài khoản owner</h2>
+            <p class="text-sm text-slate-400 mt-2">Dùng email/password trong Supabase Auth. Nếu đã có owner, hãy đăng nhập ở khung bên dưới.</p>
+            <div class="mt-5 space-y-3">
+              <input x-model="loginForm.email" type="email" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Owner email">
+              <input x-model="loginForm.password" type="password" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Owner password">
+              <button @click="login()" class="w-full rounded-xl bg-cyan-500 text-slate-950 font-bold py-3">Sign in / Bootstrap</button>
+            </div>
+            <div class="mt-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-sm text-cyan-100">
+              Nếu chưa có owner, hãy đặt `BOOTSTRAP_OWNER_EMAIL` và `BOOTSTRAP_OWNER_PASSWORD` trên Render để hệ thống tự tạo owner ở lần khởi động đầu.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section x-show="!authenticated && !bootstrapState.can_bootstrap" class="min-h-screen grid place-items-center px-6">
+      <div class="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/70 backdrop-blur p-8 shadow-2xl">
+        <div class="text-xs uppercase tracking-[0.3em] text-cyan-400 font-bold">Content Hub OS</div>
+        <h1 class="text-3xl font-black mt-2">Đăng nhập</h1>
+        <p class="text-sm text-slate-400 mt-2">Dùng tài khoản Supabase Auth để truy cập dashboard và phân quyền theo `profiles.role`.</p>
+        <div class="mt-6 space-y-3">
+          <input x-model="loginForm.email" type="email" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Email">
+          <input x-model="loginForm.password" type="password" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Password">
+          <button @click="login()" class="w-full rounded-xl bg-cyan-500 text-slate-950 font-bold py-3">Đăng nhập</button>
+        </div>
+        <div class="mt-6 text-xs text-slate-500">
+          Môi trường: <span class="text-slate-300" x-text="env"></span>
+        </div>
+      </div>
+    </section>
+    <div x-show="authenticated" class="min-h-screen flex">
+    <aside class="w-72 border-r border-slate-800 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.10),transparent_42%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(2,6,23,1))] p-5 space-y-6">
+      <div>
+        <div class="text-xs uppercase tracking-[0.3em] text-cyan-400 font-bold">Content Hub OS</div>
+        <h1 class="text-2xl font-black mt-2">{{ app_name }}</h1>
+        <p class="text-xs text-slate-500 mt-1">{{ app_env }}</p>
+      </div>
+      <nav class="space-y-2 text-sm">
+        <button @click="tab='dashboard'" :class="tab==='dashboard' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Dashboard</button>
+        <button @click="tab='content'" :class="tab==='content' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Content Hub</button>
+        <button @click="tab='accounts'" :class="tab==='accounts' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Accounts</button>
+        <button x-show="currentUser?.role === 'owner' || currentUser?.role === 'admin'" @click="tab='admin'" :class="tab==='admin' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Admin</button>
+        <button @click="tab='settings'" :class="tab==='settings' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Settings</button>
+        <button @click="tab='logs'" :class="tab==='logs' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Logs</button>
+      </nav>
+    </aside>
+    <main class="flex-1 overflow-y-auto relative">
+      <div class="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cyan-500/10 via-transparent to-transparent pointer-events-none"></div>
+      <header class="border-b border-slate-800 px-8 py-5 flex items-center justify-between bg-slate-950/70 backdrop-blur-xl sticky top-0 z-20">
+        <div>
+          <div class="text-xs text-slate-500 uppercase tracking-[0.25em]">Workspace</div>
+          <h2 class="text-xl font-bold" x-text="{
+            dashboard:'Dashboard',
+            content:'Content Hub',
+            accounts:'Accounts',
+            admin:'Admin',
+            settings:'Settings',
+            logs:'Logs'
+          }[tab] || 'Workspace'"></h2>
+          <div class="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Live sync via Supabase</span>
+            <span class="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-900/70" x-text="env"></span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="hidden md:flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs text-slate-300">
+            <span x-text="currentUser?.full_name || currentUser?.email || 'Guest'"></span>
+            <span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300" x-text="currentUser?.role || 'viewer'"></span>
+          </div>
+          <button @click="logout()" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 font-semibold">Logout</button>
+          <button @click="refreshAll()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-semibold">Refresh</button>
+          <button @click="tab='content'" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 font-semibold">Open Hub</button>
+        </div>
+      </header>
+
+      <section x-show="tab==='dashboard'" class="p-8 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          <template x-for="card in summaryCards" :key="card.label">
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+              <div class="text-xs uppercase tracking-[0.2em] text-slate-500" x-text="card.label"></div>
+              <div class="text-3xl font-black mt-3" x-text="card.value"></div>
+            </div>
+          </template>
+        </div>
+        <div class="rounded-3xl border border-slate-800 bg-slate-900/50 p-6">
+          <h3 class="font-bold text-lg mb-4">Trạng thái hệ thống</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div class="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">Pending jobs: <span class="font-semibold" x-text="summary.pending_jobs"></span></div>
+            <div class="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">Running jobs: <span class="font-semibold" x-text="summary.running_jobs"></span></div>
+            <div class="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">Failed jobs: <span class="font-semibold" x-text="summary.failed_jobs"></span></div>
+            <div class="rounded-2xl bg-slate-950/70 border border-slate-800 p-4">Environment: <span class="font-semibold" x-text="env"></span></div>
+          </div>
+          <div class="mt-4">
+            <button @click="tickScheduler()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-semibold">Run scheduler tick</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div class="rounded-3xl border border-slate-800 bg-slate-900/50 p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-lg">Recent Jobs</h3>
+              <span class="text-xs text-slate-500">10 latest</span>
+            </div>
+            <div class="space-y-2">
+              <template x-for="job in recent.jobs" :key="job.id">
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="font-semibold" x-text="job.job_type"></div>
+                      <div class="text-xs text-slate-500" x-text="job.status + ' · ' + (job.last_error || 'ok')"></div>
+                    </div>
+                    <div class="text-xs text-slate-400" x-text="job.created_at || ''"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+          <div class="rounded-3xl border border-slate-800 bg-slate-900/50 p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-lg">Recent Events</h3>
+              <span class="text-xs text-slate-500">10 latest</span>
+            </div>
+            <div class="space-y-2">
+              <template x-for="event in recent.events" :key="event.id">
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <div class="font-semibold" x-text="event.code"></div>
+                      <div class="text-xs text-slate-500" x-text="event.message"></div>
+                    </div>
+                    <div class="text-xs text-slate-400" x-text="event.level"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section x-show="tab==='content'" class="p-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="space-y-6">
+          <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+            <h3 class="font-bold text-lg mb-4">Tạo Group</h3>
+            <div class="space-y-3">
+              <input x-model="groupForm.name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Tên group">
+              <input x-model="groupForm.source_key" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Source key">
+              <input x-model="groupForm.source_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Source link">
+              <input x-model="groupForm.target_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target link">
+              <button @click="createGroup()" class="w-full rounded-xl bg-cyan-500 text-slate-950 font-bold py-3">Lưu Group</button>
+            </div>
+          </div>
+          <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+            <h3 class="font-bold text-lg mb-4">Tạo Topic</h3>
+            <select x-model="topicForm.group_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 mb-3">
+              <option value="">Chọn group</option>
+              <template x-for="g in groups" :key="g.id">
+                <option :value="g.id" x-text="g.name"></option>
+              </template>
+            </select>
+            <div class="space-y-3">
+              <input x-model="topicForm.name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Tên topic">
+              <input x-model="topicForm.source_topic_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Source topic id">
+              <input x-model="topicForm.target_topic_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target topic id">
+              <button @click="createTopic()" class="w-full rounded-xl bg-emerald-500 text-slate-950 font-bold py-3">Lưu Topic</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="xl:col-span-2 space-y-6">
+          <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+              <h3 class="font-bold text-lg mr-auto">Groups</h3>
+              <input x-model="query.groups" @keydown.enter="applySearch('groups')" class="w-56 rounded-xl bg-slate-950 border border-slate-800 px-4 py-2 text-sm" placeholder="Search groups">
+              <button @click="applySearch('groups')" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Search</button>
+              <button @click="prevPage('groups')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Prev</button>
+              <button @click="nextPage('groups')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Next</button>
+            </div>
+            <div class="space-y-3">
+              <template x-for="g in groups" :key="g.id">
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <div class="font-bold" x-text="g.name"></div>
+                      <div class="text-xs text-slate-500" x-text="g.source_key || 'no source key'"></div>
+                    </div>
+                    <div class="flex gap-2">
+                      <button @click="selectGroup(g)" class="px-3 py-2 rounded-lg bg-slate-800 text-xs">Open</button>
+                      <button @click="openGroupEditor(g)" class="px-3 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 text-xs">Edit</button>
+                      <button @click="openGroupRuns(g)" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Runs</button>
+                      <button @click="confirmDelete('group', g.id, g.name)" class="px-3 py-2 rounded-lg bg-rose-500/20 text-rose-300 text-xs">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6" x-show="selectedGroup">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-lg">Topics & Campaigns</h3>
+              <div class="text-sm text-slate-400" x-text="selectedGroup?.name"></div>
+            </div>
+            <div class="mb-5 rounded-2xl border border-slate-800 bg-slate-950/60 p-4" x-show="editingGroup">
+              <div class="font-semibold mb-3">Edit Group</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input x-model="editingGroup.name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Tên group">
+                <input x-model="editingGroup.source_key" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Source key">
+                <input x-model="editingGroup.source_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 md:col-span-2" placeholder="Source link">
+                <input x-model="editingGroup.target_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 md:col-span-2" placeholder="Target link">
+              </div>
+              <div class="flex gap-3 mt-4">
+                <button @click="saveGroupEdit()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold">Save</button>
+                <button @click="cancelGroupEdit()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200">Cancel</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div class="space-y-3">
+                <div class="flex items-center gap-2 mb-2">
+                  <input x-model="query.topics" @keydown.enter="applySearch('topics')" class="flex-1 rounded-xl bg-slate-950 border border-slate-800 px-4 py-2 text-sm" placeholder="Search topics">
+                  <button @click="applySearch('topics')" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Search</button>
+                  <button @click="prevPage('topics')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Prev</button>
+                  <button @click="nextPage('topics')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Next</button>
+                </div>
+                <template x-for="t in topics" :key="t.id">
+                  <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                    <div class="flex items-center justify-between gap-3">
+                      <div>
+                        <div class="font-semibold" x-text="t.name"></div>
+                        <div class="text-xs text-slate-500">#<span x-text="t.source_topic_id || 0"></span> → #<span x-text="t.target_topic_id || 0"></span></div>
+                      </div>
+                    <div class="flex gap-2">
+                      <button @click="selectTopic(t)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Open</button>
+                      <button @click="openTopicEditor(t)" class="px-3 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 text-xs">Edit</button>
+                      <button @click="confirmDelete('topic', t.id, t.name)" class="px-3 py-2 rounded-lg bg-rose-500/20 text-rose-300 text-xs">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+              <div class="space-y-3" x-show="selectedTopic">
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4" x-show="editingTopic">
+                  <div class="font-semibold mb-3">Edit Topic</div>
+                  <div class="space-y-3">
+                    <input x-model="editingTopic.name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Tên topic">
+                    <div class="grid grid-cols-2 gap-3">
+                      <input x-model="editingTopic.source_topic_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Source topic id">
+                      <input x-model="editingTopic.target_topic_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target topic id">
+                    </div>
+                    <input x-model="editingTopic.target_link_seed" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target link seed">
+                    <div class="flex gap-3">
+                      <button @click="saveTopicEdit()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold">Save</button>
+                      <button @click="cancelTopicEdit()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div class="flex items-center gap-2 mb-3">
+                    <div class="font-semibold mr-auto" x-text="selectedTopic?.name"></div>
+                    <input x-model="query.campaigns" @keydown.enter="applySearch('campaigns')" class="w-44 rounded-xl bg-slate-950 border border-slate-800 px-4 py-2 text-xs" placeholder="Search campaigns">
+                    <button @click="applySearch('campaigns')" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Search</button>
+                    <button @click="prevPage('campaigns')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Prev</button>
+                    <button @click="nextPage('campaigns')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Next</button>
+                  </div>
+                  <div class="space-y-3">
+                    <input x-model="campaignForm.title" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Campaign title">
+              <input x-model="campaignForm.target_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target link">
+              <textarea x-model="campaignForm.caption" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 min-h-[120px]" placeholder="Caption"></textarea>
+              <div class="grid grid-cols-2 gap-3">
+                <input x-model="campaignForm.delay_min" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Delay min">
+                <input x-model="campaignForm.delay_max" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Delay max">
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="flex items-center gap-2 text-sm text-slate-300 rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
+                  <input type="checkbox" x-model="campaignForm.schedule_enabled" class="rounded border-slate-700">
+                  Schedule enabled
+                </label>
+                <input x-model="campaignForm.schedule_slots" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="09:00, 13:00, 21:00">
+              </div>
+              <button @click="createCampaign()" class="w-full rounded-xl bg-emerald-500 text-slate-950 font-bold py-3">Lưu Campaign</button>
+            </div>
+          </div>
+                <div class="space-y-3">
+                  <template x-for="c in campaigns" :key="c.id">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                      <div class="flex items-center justify-between gap-3">
+                        <div>
+                          <div class="font-semibold" x-text="c.title"></div>
+                          <div class="text-xs text-slate-500" x-text="c.status || 'draft'"></div>
+                        </div>
+                        <div class="flex gap-2">
+                          <button @click="runCampaign(c.id)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Run</button>
+                          <button @click="openCampaignEditor(c)" class="px-3 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 text-xs">Edit</button>
+                          <button @click="openCampaignRuns(c)" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Runs</button>
+                          <button @click="confirmDelete('campaign', c.id, c.title)" class="px-3 py-2 rounded-lg bg-rose-500/20 text-rose-300 text-xs">Delete</button>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4" x-show="editingCampaign">
+                  <div class="font-semibold mb-3">Edit Campaign</div>
+                  <div class="space-y-3">
+                    <input x-model="editingCampaign.title" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Campaign title">
+                    <input x-model="editingCampaign.target_link" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Target link">
+                    <textarea x-model="editingCampaign.caption" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 min-h-[120px]" placeholder="Caption"></textarea>
+                    <div class="grid grid-cols-2 gap-3">
+                      <input x-model="editingCampaign.delay_min" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Delay min">
+                      <input x-model="editingCampaign.delay_max" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Delay max">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                      <label class="flex items-center gap-2 text-sm text-slate-300 rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
+                        <input type="checkbox" x-model="editingCampaign.schedule_enabled" class="rounded border-slate-700">
+                        Schedule enabled
+                      </label>
+                      <input x-model="editingCampaign.schedule_slots" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="09:00, 13:00, 21:00">
+                    </div>
+                    <div class="flex gap-3">
+                      <button @click="saveCampaignEdit()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold">Save</button>
+                      <button @click="cancelCampaignEdit()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section x-show="tab==='accounts'" class="p-8 grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+          <h3 class="font-bold text-lg mb-4">New Account</h3>
+          <div class="space-y-3">
+            <input x-model="accountForm.name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Account name">
+            <input x-model="accountForm.api_id" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="API ID">
+            <input x-model="accountForm.api_hash" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="API Hash">
+            <input x-model="accountForm.phone" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Phone">
+            <input x-model="accountForm.session_ref" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Session ref">
+            <button @click="createAccount()" class="w-full rounded-xl bg-cyan-500 text-slate-950 font-bold py-3">Save Account</button>
+          </div>
+        </div>
+        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+          <h3 class="font-bold text-lg mb-4">Accounts</h3>
+          <div class="space-y-3">
+            <template x-for="a in accounts" :key="a.id">
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <div class="font-semibold" x-text="a.name"></div>
+                    <div class="text-xs text-slate-500" x-text="a.status || 'unverified'"></div>
+                    <div class="text-[11px] text-slate-600 mt-1" x-text="a.last_checked_at || 'never checked'"></div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button @click="testAccount(a)" class="px-3 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 text-xs">Test</button>
+                    <button @click="toggleAccountActive(a)" class="px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs">Toggle</button>
+                    <button @click="confirmDelete('account', a.id, a.name)" class="px-3 py-2 rounded-lg bg-rose-500/20 text-rose-300 text-xs">Delete</button>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+
+      <section x-show="tab==='settings'" class="p-8 grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+          <h3 class="font-bold text-lg mb-4">Settings</h3>
+          <div class="space-y-3">
+            <template x-for="s in settingsList" :key="s.key">
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="text-xs uppercase tracking-[0.2em] text-slate-500" x-text="s.key"></div>
+                <div class="mt-2 flex items-center gap-3">
+                  <input x-model="s.value" class="flex-1 rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
+                  <button @click="saveSetting(s)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Save</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+
+      <section x-show="tab==='admin'" class="p-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
+          <div>
+            <h3 class="font-bold text-lg">Bootstrap / Invites</h3>
+            <p class="text-sm text-slate-400 mt-1">Khi chưa có owner, hệ thống có thể bootstrap bằng env hoặc mời user mới ngay trong app.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-sm">
+            <div class="flex items-center justify-between"><span>Owners</span><span class="font-bold" x-text="bootstrapState.owners"></span></div>
+            <div class="flex items-center justify-between mt-2"><span>Admins</span><span class="font-bold" x-text="bootstrapState.admins"></span></div>
+            <div class="flex items-center justify-between mt-2"><span>Bootstrap possible</span><span class="font-bold" x-text="bootstrapState.can_bootstrap ? 'Yes' : 'No'"></span></div>
+          </div>
+          <div class="space-y-3">
+            <input x-model="adminInviteForm.email" type="email" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Invite email">
+            <input x-model="adminInviteForm.full_name" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3" placeholder="Full name">
+            <select x-model="adminInviteForm.role" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
+              <option value="viewer">viewer</option>
+              <option value="editor">editor</option>
+              <option value="admin">admin</option>
+              <option value="owner">owner</option>
+            </select>
+            <button @click="inviteUser()" class="w-full rounded-xl bg-cyan-500 text-slate-950 font-bold py-3">Send invite</button>
+          </div>
+        </div>
+        <div class="xl:col-span-2 rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-bold text-lg">Users & Roles</h3>
+              <p class="text-sm text-slate-400">Quản lý quyền trực tiếp từ profiles.</p>
+            </div>
+            <button @click="loadAdminUsers()" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Reload</button>
+          </div>
+          <div class="space-y-3">
+            <template x-for="u in adminUsers" :key="u.id">
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                  <div class="md:col-span-2">
+                    <div class="font-semibold" x-text="u.full_name || u.id"></div>
+                    <div class="text-xs text-slate-500" x-text="u.id"></div>
+                  </div>
+                  <select x-model="u.role" class="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
+                    <option value="viewer">viewer</option>
+                    <option value="editor">editor</option>
+                    <option value="admin">admin</option>
+                    <option value="owner">owner</option>
+                  </select>
+                  <button @click="saveRole(u)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Save</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+
+      <section x-show="tab==='logs'" class="p-8 space-y-6">
+        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+          <div class="flex flex-wrap items-center gap-3 mb-4">
+            <h3 class="font-bold text-lg mr-auto">Logs</h3>
+            <input x-model="query.logs" @keydown.enter="applySearch('logs')" class="rounded-xl bg-slate-950 border border-slate-800 px-4 py-2" placeholder="Search logs">
+            <select x-model="logFilter.level" class="rounded-xl bg-slate-950 border border-slate-800 px-4 py-2">
+              <option value="">All levels</option>
+              <option value="info">info</option>
+              <option value="error">error</option>
+              <option value="ok">ok</option>
+            </select>
+            <input x-model="logFilter.entity_id" class="rounded-xl bg-slate-950 border border-slate-800 px-4 py-2" placeholder="Entity ID">
+            <select x-model="logFilter.entity_type" class="rounded-xl bg-slate-950 border border-slate-800 px-4 py-2">
+              <option value="">Any entity</option>
+              <option value="group">group</option>
+              <option value="topic">topic</option>
+              <option value="campaign">campaign</option>
+            </select>
+            <button @click="loadLogs()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-semibold">Apply</button>
+            <button @click="prevPage('logs')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Prev</button>
+            <button @click="nextPage('logs')" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Next</button>
+          </div>
+          <div class="space-y-2">
+            <template x-for="l in logs" :key="l.id">
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <div class="font-semibold" x-text="l.code"></div>
+                    <div class="text-xs text-slate-500" x-text="l.message"></div>
+                  </div>
+                  <div class="text-xs text-slate-400" x-text="l.level"></div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div x-show="toast.show" x-transition class="fixed bottom-5 right-5 z-50">
+      <div class="min-w-[260px] max-w-md rounded-2xl border px-4 py-3 shadow-2xl"
+           :class="toast.type === 'error' ? 'border-rose-500/40 bg-rose-500/15 text-rose-100' : 'border-emerald-500/40 bg-emerald-500/15 text-emerald-100'">
+        <div class="text-sm font-semibold" x-text="toast.title"></div>
+        <div class="text-xs mt-1 opacity-90" x-text="toast.message"></div>
+      </div>
+    </div>
+
+    <div x-show="confirmBox.open" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="w-full max-w-lg rounded-3xl border border-slate-800 bg-slate-950 p-6 shadow-2xl">
+        <div class="text-xs uppercase tracking-[0.3em] text-slate-500">Confirm delete</div>
+        <h3 class="text-xl font-bold mt-2">Xoá <span x-text="confirmBox.label"></span>?</h3>
+        <p class="text-sm text-slate-400 mt-3">Thao tác này không thể hoàn tác. Dữ liệu liên quan sẽ bị xoá khỏi hệ thống.</p>
+        <div class="flex gap-3 mt-6">
+          <button @click="executeDelete()" class="px-4 py-3 rounded-xl bg-rose-500 text-white font-bold">Delete</button>
+          <button @click="closeConfirm()" class="px-4 py-3 rounded-xl bg-slate-800 text-slate-200">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="drawer.open" class="fixed inset-0 z-[45] bg-slate-950/50 backdrop-blur-sm" style="display:none" @click="closeDrawer()"></div>
+    <aside x-show="drawer.open" x-transition class="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-slate-950 border-l border-slate-800 shadow-2xl overflow-y-auto" style="display:none">
+      <div class="p-6 border-b border-slate-800 flex items-start justify-between gap-4">
+        <div>
+          <div class="text-xs uppercase tracking-[0.3em] text-slate-500">Inspector</div>
+          <h3 class="text-2xl font-black mt-1" x-text="drawer.title"></h3>
+          <p class="text-sm text-slate-500 mt-1" x-text="drawer.subtitle"></p>
+        </div>
+        <button @click="closeDrawer()" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200">Close</button>
+      </div>
+      <div class="p-6 space-y-4">
+        <template x-if="drawer.type === 'group'">
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Topics</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.topics || 0"></div></div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Campaigns</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.campaigns || 0"></div></div>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Quick Actions</div>
+              <div class="flex flex-wrap gap-2 mt-3">
+                <button @click="tab='content'; closeDrawer()" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Open workspace</button>
+                <button @click="tickScheduler()" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Tick scheduler</button>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Recent Jobs</div>
+              <div class="mt-3 space-y-2">
+                <template x-for="job in drawer.jobs" :key="job.id">
+                  <button @click="openJobDetail(job)" class="w-full text-left rounded-xl border border-slate-800 bg-slate-950/70 p-3 hover:border-cyan-500/30">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="text-sm font-semibold" x-text="job.job_type"></div>
+                        <div class="text-xs text-slate-500" x-text="job.status || 'pending'"></div>
+                      </div>
+                      <div class="text-xs text-slate-400" x-text="job.created_at || ''"></div>
+                    </div>
+                  </button>
+                </template>
+                <div x-show="!drawer.jobs.length" class="text-sm text-slate-500">Chưa có job.</div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template x-if="drawer.type === 'topic'">
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Source</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.source_topic_id || 0"></div></div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Target</div><div class="text-2xl font-black mt-1" x-text="drawer.metrics.target_topic_id || 0"></div></div>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Quick Actions</div>
+              <div class="flex flex-wrap gap-2 mt-3">
+                <button @click="tab='content'; closeDrawer()" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Open workspace</button>
+                <button @click="selectTopic(drawer.metrics)" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Open topic</button>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template x-if="drawer.type === 'campaign'">
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Status</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.status || 'draft'"></div></div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Schedule</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.schedule_enabled ? 'On' : 'Off'"></div></div>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Quick Actions</div>
+              <div class="flex flex-wrap gap-2 mt-3">
+                <button @click="runCampaign(drawer.metrics.id)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Run now</button>
+                <button @click="openCampaignEditor(drawer.metrics)" class="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs">Edit</button>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Runs</div>
+              <div class="mt-3 space-y-2">
+                <template x-for="run in drawer.runs" :key="run.id">
+                  <button @click="openRunDetail(run)" class="w-full text-left rounded-xl border border-slate-800 bg-slate-950/70 p-3 hover:border-cyan-500/30">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="text-sm font-semibold" x-text="run.slot_key || run.id"></div>
+                        <div class="text-xs text-slate-500" x-text="run.status || 'pending'"></div>
+                      </div>
+                      <div class="text-xs text-slate-400" x-text="run.created_at || ''"></div>
+                    </div>
+                  </button>
+                </template>
+                <div x-show="!drawer.runs.length" class="text-sm text-slate-500">Chưa có run.</div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template x-if="drawer.type === 'run'">
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Status</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.status || 'pending'"></div></div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Queued</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.queued_items || 0"></div></div>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Jobs</div>
+              <div class="mt-3 space-y-2">
+                <template x-for="job in drawer.jobs" :key="job.id">
+                  <button @click="openJobDetail(job)" class="w-full text-left rounded-xl border border-slate-800 bg-slate-950/70 p-3 hover:border-cyan-500/30">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <div class="text-sm font-semibold" x-text="job.job_type"></div>
+                        <div class="text-xs text-slate-500" x-text="job.status || 'pending'"></div>
+                      </div>
+                      <div class="text-xs text-slate-400" x-text="job.created_at || ''"></div>
+                    </div>
+                  </button>
+                </template>
+                <div x-show="!drawer.jobs.length" class="text-sm text-slate-500">Chưa có job.</div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template x-if="drawer.type === 'job'">
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Attempts</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.attempts || 0"></div></div>
+              <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div class="text-xs text-slate-500 uppercase">Priority</div><div class="text-lg font-bold mt-1" x-text="drawer.metrics.priority || 0"></div></div>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Payload</div>
+              <pre class="mt-3 text-xs whitespace-pre-wrap text-slate-300" x-text="JSON.stringify(drawer.metrics.payload || {}, null, 2)"></pre>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+              <div class="text-xs uppercase text-slate-500 tracking-[0.2em]">Result</div>
+              <pre class="mt-3 text-xs whitespace-pre-wrap text-slate-300" x-text="JSON.stringify(drawer.metrics.result || {}, null, 2)"></pre>
+            </div>
+          </div>
+        </template>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const initialUser = {{ current_user | tojson }};
+    function appShell() {
+      return {
+        authenticated: !!initialUser,
+        currentUser: initialUser,
+        tab: 'dashboard',
+        env: '{{ app_env }}',
+        loginForm: {email:'', password:''},
+        adminUsers: [],
+        adminInviteForm: {email:'', role:'viewer', full_name:''},
+        bootstrapState: {owners:0, admins:0, can_bootstrap:false},
+        summary: {groups:0, topics:0, campaigns:0, pending_jobs:0, running_jobs:0, failed_jobs:0},
+        groups: [],
+        topics: [],
+        campaigns: [],
+        accounts: [],
+        settingsList: [],
+        logs: [],
+        recent: {jobs: [], events: []},
+        logFilter: {entity_type:'', entity_id:'', level:''},
+        query: {groups:'', topics:'', campaigns:'', logs:'', runs:'', jobs:''},
+        paging: {groups:{limit:8, offset:0}, topics:{limit:8, offset:0}, campaigns:{limit:8, offset:0}, logs:{limit:20, offset:0}},
+        selectedGroup: null,
+        selectedTopic: null,
+        editingGroup: null,
+        editingTopic: null,
+        editingCampaign: null,
+        confirmBox: {open: false, type: '', id: '', label: ''},
+        drawer: {open: false, type: '', title: '', subtitle: '', metrics: {}},
+        toast: {show: false, type: 'success', title: '', message: ''},
+        groupForm: {name:'', source_key:'', source_link:'', target_link:''},
+        topicForm: {group_id:'', name:'', source_topic_id:'', target_topic_id:'', target_link_seed:''},
+        campaignForm: {title:'', target_link:'', caption:'', delay_min:1, delay_max:7, schedule_enabled:false, schedule_slots:''},
+        accountForm: {name:'', api_id:'', api_hash:'', phone:'', session_ref:''},
+        summaryCards: [
+          {label:'Groups', value: 0},
+          {label:'Topics', value: 0},
+          {label:'Campaigns', value: 0},
+          {label:'Pending', value: 0},
+          {label:'Running', value: 0},
+          {label:'Failed', value: 0},
+        ],
+        activeNav: 'bg-cyan-500 text-slate-950 font-semibold',
+        inactiveNav: 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800',
+        async init() {
+          if (this.authenticated) {
+            await this.refreshAll();
+            return;
+          }
+          await this.loadMe();
+        },
+        async apiFetch(url, options = {}) {
+          const res = await fetch(url, {credentials:'include', ...options});
+          if (res.status === 401) {
+            this.authenticated = false;
+            this.currentUser = null;
+          }
+          return res;
+        },
+        async loadMe() {
+          const res = await this.apiFetch('/api/auth/me');
+          const data = await res.json();
+          this.currentUser = data.user || null;
+          this.authenticated = !!this.currentUser;
+          if (this.authenticated) await this.refreshAll();
+        },
+        async login() {
+          const res = await this.apiFetch('/api/auth/login', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(this.loginForm),
+          });
+          const data = await res.json();
+          if (res.ok && data.ok) {
+            this.currentUser = data.user || this.currentUser;
+            this.authenticated = true;
+            this.notify('success', 'Đã đăng nhập', 'Cookie session đã được tạo.');
+            await this.refreshAll();
+          } else {
+            this.notify('error', 'Login failed', data.detail || 'Không thể đăng nhập.');
+          }
+        },
+        async logout() {
+          await this.apiFetch('/api/auth/logout', {method:'POST'});
+          this.authenticated = false;
+          this.currentUser = null;
+          this.loginForm = {email:'', password:''};
+          this.notify('success', 'Đã đăng xuất', '');
+        },
+        async saveRole(user) {
+          const res = await this.apiFetch('/api/admin/profiles/' + user.id, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({role: user.role})
+          });
+          if (res.ok) {
+            this.notify('success', 'Role updated', 'Đã cập nhật quyền.');
+            await this.loadAdminUsers();
+          } else {
+            this.notify('error', 'Update failed', 'Không thể cập nhật role.');
+          }
+        },
+        async inviteUser() {
+          const res = await this.apiFetch('/api/admin/invite', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(this.adminInviteForm)
+          });
+          const data = await res.json();
+          if (res.ok && data.ok) {
+            this.notify('success', 'Invite sent', data.email + ' đã được mời.');
+            this.adminInviteForm = {email:'', role:'viewer', full_name:''};
+            await this.loadAdminUsers();
+          } else {
+            this.notify('error', 'Invite failed', data.detail || 'Không thể gửi lời mời.');
+          }
+        },
+        notify(type, title, message='') {
+          this.toast = {show: true, type, title, message};
+          window.clearTimeout(this._toastTimer);
+          this._toastTimer = window.setTimeout(() => { this.toast.show = false; }, 2600);
+        },
+        async refreshAll() {
+          await this.loadSummary();
+          await this.loadRecent();
+          await this.loadGroups();
+          await this.loadAccounts();
+          await this.loadSettings();
+          await this.loadLogs();
+          await this.loadBootstrapState();
+          if (this.currentUser?.role === 'owner' || this.currentUser?.role === 'admin') {
+            await this.loadAdminUsers();
+          }
+          if (this.selectedGroup) await this.loadTopics(this.selectedGroup.id);
+          if (this.selectedTopic) await this.loadCampaigns(this.selectedTopic.id);
+        },
+        async loadBootstrapState() {
+          const res = await this.apiFetch('/api/auth/bootstrap');
+          this.bootstrapState = res.ok ? await res.json() : {owners:0, admins:0, can_bootstrap:false};
+        },
+        async loadAdminUsers() {
+          const res = await this.apiFetch('/api/admin/profiles');
+          this.adminUsers = res.ok ? await res.json() : [];
+        },
+        async loadSummary() {
+          const res = await this.apiFetch('/api/dashboard/summary');
+          this.summary = await res.json();
+          this.summaryCards = [
+            {label:'Groups', value: this.summary.groups},
+            {label:'Topics', value: this.summary.topics},
+            {label:'Campaigns', value: this.summary.campaigns},
+            {label:'Pending', value: this.summary.pending_jobs},
+            {label:'Running', value: this.summary.running_jobs},
+            {label:'Failed', value: this.summary.failed_jobs},
+          ];
+        },
+        async loadGroups() {
+          const params = new URLSearchParams({limit: String(this.paging.groups.limit), offset: String(this.paging.groups.offset)});
+          if (this.query.groups) params.set('q', this.query.groups);
+          const res = await this.apiFetch('/api/groups?' + params.toString());
+          this.groups = await res.json();
+        },
+        async loadTopics(groupId) {
+          const params = new URLSearchParams({group_id: groupId, limit: String(this.paging.topics.limit), offset: String(this.paging.topics.offset)});
+          if (this.query.topics) params.set('q', this.query.topics);
+          const res = await this.apiFetch('/api/topics?' + params.toString());
+          this.topics = await res.json();
+        },
+        async loadCampaigns(topicId) {
+          const params = new URLSearchParams({topic_id: topicId, limit: String(this.paging.campaigns.limit), offset: String(this.paging.campaigns.offset)});
+          if (this.query.campaigns) params.set('q', this.query.campaigns);
+          const res = await this.apiFetch('/api/campaigns?' + params.toString());
+          this.campaigns = await res.json();
+        },
+        async loadAccounts() {
+          const res = await this.apiFetch('/api/accounts');
+          this.accounts = await res.json();
+        },
+        async loadSettings() {
+          const res = await this.apiFetch('/api/settings');
+          this.settingsList = await res.json();
+        },
+        async loadLogs() {
+          const params = new URLSearchParams();
+          if (this.logFilter.entity_type) params.set('entity_type', this.logFilter.entity_type);
+          if (this.logFilter.entity_id) params.set('entity_id', this.logFilter.entity_id);
+          if (this.logFilter.level) params.set('level', this.logFilter.level);
+          if (this.query.logs) params.set('q', this.query.logs);
+          params.set('limit', String(this.paging.logs.limit));
+          params.set('offset', String(this.paging.logs.offset));
+          const res = await this.apiFetch('/api/logs?' + params.toString());
+          this.logs = await res.json();
+        },
+        async loadRecent() {
+          const res = await this.apiFetch('/api/dashboard/recent');
+          this.recent = await res.json();
+        },
+        async createGroup() {
+          const res = await this.apiFetch('/api/groups', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(this.groupForm)});
+          if (res.ok) {
+            this.groupForm = {name:'', source_key:'', source_link:'', target_link:''};
+            await this.refreshAll();
+            this.notify('success', 'Group created', 'Nhóm mới đã được lưu.');
+          } else {
+            this.notify('error', 'Create failed', 'Không thể tạo group.');
+          }
+        },
+        openGroupEditor(group) {
+          this.editingGroup = {...group};
+          this.selectedGroup = group;
+          this.topicForm.group_id = group.id;
+          this.loadTopics(group.id);
+          this.openDrawer('group', group.name, group.source_key || 'Group details', {
+            topics: this.topics.length,
+            campaigns: this.campaigns.length,
+            ...group,
+          });
+        },
+        async openGroupRuns(group) {
+          const jobsRes = await this.apiFetch('/api/runs/jobs?limit=10');
+          const jobs = await jobsRes.json();
+          this.openDrawer('group', group.name, 'Recent jobs overview', {
+            ...group,
+            jobs,
+            topics: this.topics.length,
+            campaigns: this.campaigns.length,
+          });
+        },
+        cancelGroupEdit() {
+          this.editingGroup = null;
+        },
+        async saveGroupEdit() {
+          if (!this.editingGroup) return;
+          const res = await this.apiFetch('/api/groups/' + this.editingGroup.id, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              name: this.editingGroup.name,
+              source_key: this.editingGroup.source_key,
+              source_link: this.editingGroup.source_link,
+              target_link: this.editingGroup.target_link,
+            })
+          });
+          if (res.ok) {
+            this.editingGroup = null;
+            this.notify('success', 'Group updated', 'Đã lưu thay đổi.');
+            await this.refreshAll();
+          } else {
+            this.notify('error', 'Update failed', 'Không thể cập nhật group.');
+          }
+        },
+        confirmDelete(type, id, label) {
+          this.confirmBox = {open: true, type, id, label};
+        },
+        closeConfirm() {
+          this.confirmBox = {open: false, type: '', id: '', label: ''};
+        },
+        async executeDelete() {
+          const {type, id} = this.confirmBox;
+          this.closeConfirm();
+          const endpoint = type === 'group' ? '/api/groups/' : type === 'topic' ? '/api/topics/' : type === 'campaign' ? '/api/campaigns/' : '/api/accounts/';
+          const res = await this.apiFetch(endpoint + id, {method:'DELETE'});
+          if (res.ok) {
+            if (type === 'group' && this.selectedGroup?.id === id) {
+              this.selectedGroup = null;
+              this.selectedTopic = null;
+              this.topics = [];
+              this.campaigns = [];
+              this.editingGroup = null;
+            }
+            if (type === 'topic' && this.selectedTopic?.id === id) {
+              this.selectedTopic = null;
+              this.campaigns = [];
+              this.editingTopic = null;
+            }
+            if (type === 'campaign' && this.editingCampaign?.id === id) {
+              this.editingCampaign = null;
+            }
+            if (type === 'account') {
+              await this.loadAccounts();
+            }
+            this.notify('success', 'Deleted', 'Đã xoá thành công.');
+            await this.refreshAll();
+          } else {
+            this.notify('error', 'Delete failed', 'Không thể xoá mục đã chọn.');
+          }
+        },
+        async deleteGroup(id) {
+          this.confirmDelete('group', id, 'group');
+        },
+        async createAccount() {
+          const payload = {
+            name: this.accountForm.name,
+            api_id: this.accountForm.api_id ? Number(this.accountForm.api_id) : null,
+            api_hash: this.accountForm.api_hash,
+            phone: this.accountForm.phone,
+            session_ref: this.accountForm.session_ref,
+            is_active: false,
+          };
+          const res = await this.apiFetch('/api/accounts', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+          if (res.ok) {
+            this.accountForm = {name:'', api_id:'', api_hash:'', phone:'', session_ref:''};
+            this.notify('success', 'Account created', 'Đã lưu account.');
+            await this.loadAccounts();
+          } else {
+            this.notify('error', 'Create failed', 'Không thể tạo account.');
+          }
+        },
+        async toggleAccountActive(a) {
+          const res = await this.apiFetch('/api/accounts/' + a.id, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({is_active: !a.is_active, status: a.status})
+          });
+          if (res.ok) {
+            this.notify('success', 'Account updated', 'Đã đổi trạng thái account.');
+            await this.loadAccounts();
+          } else {
+            this.notify('error', 'Update failed', 'Không thể cập nhật account.');
+          }
+        },
+        async testAccount(a) {
+          const res = await this.apiFetch('/api/accounts/' + a.id + '/test', {method:'POST'});
+          const data = await res.json();
+          if (data.ok) {
+            this.notify('success', 'Account OK', data.message || 'Kết nối thành công.');
+          } else {
+            this.notify('error', 'Account failed', data.message || 'Kiểm tra thất bại.');
+          }
+          await this.loadAccounts();
+        },
+        async selectGroup(group) {
+          this.selectedGroup = group;
+          this.selectedTopic = null;
+          this.campaigns = [];
+          this.topicForm.group_id = group.id;
+          await this.loadTopics(group.id);
+          this.openDrawer('group', group.name, group.source_key || 'Group details', {
+            topics: this.topics.length,
+            campaigns: this.campaigns.length,
+            ...group,
+          });
+        },
+        async createTopic() {
+          if (!this.topicForm.group_id) return;
+          const payload = {...this.topicForm, source_topic_id: this.topicForm.source_topic_id ? Number(this.topicForm.source_topic_id) : null, target_topic_id: this.topicForm.target_topic_id ? Number(this.topicForm.target_topic_id) : null};
+          const res = await this.apiFetch('/api/topics/groups/' + this.topicForm.group_id, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+          if (res.ok) {
+            this.topicForm.name = '';
+            this.topicForm.source_topic_id = '';
+            this.topicForm.target_topic_id = '';
+            await this.loadTopics(this.topicForm.group_id);
+            await this.loadSummary();
+            this.notify('success', 'Topic created', 'Đã lưu topic mới.');
+          } else {
+            this.notify('error', 'Create failed', 'Không thể tạo topic.');
+          }
+        },
+        openTopicEditor(topic) {
+          this.editingTopic = {...topic};
+          this.selectedTopic = topic;
+          this.loadCampaigns(topic.id);
+          this.openDrawer('topic', topic.name, 'Topic mapping and operations', {...topic});
+        },
+        cancelTopicEdit() {
+          this.editingTopic = null;
+        },
+        async saveTopicEdit() {
+          if (!this.editingTopic) return;
+          const res = await this.apiFetch('/api/topics/' + this.editingTopic.id, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              name: this.editingTopic.name,
+              source_topic_id: this.editingTopic.source_topic_id ? Number(this.editingTopic.source_topic_id) : null,
+              target_topic_id: this.editingTopic.target_topic_id ? Number(this.editingTopic.target_topic_id) : null,
+              target_link_seed: this.editingTopic.target_link_seed,
+            })
+          });
+          if (res.ok) {
+            this.editingTopic = null;
+            this.notify('success', 'Topic updated', 'Đã lưu thay đổi.');
+            if (this.selectedGroup) await this.loadTopics(this.selectedGroup.id);
+          } else {
+            this.notify('error', 'Update failed', 'Không thể cập nhật topic.');
+          }
+        },
+        async selectTopic(topic) {
+          this.selectedTopic = topic;
+          this.campaignForm.title = '';
+          await this.loadCampaigns(topic.id);
+          this.openDrawer('topic', topic.name, 'Topic workspace', {...topic});
+        },
+        async createCampaign() {
+          if (!this.selectedTopic) return;
+          const payload = {
+            ...this.campaignForm,
+            delay_min: Number(this.campaignForm.delay_min || 1),
+            delay_max: Number(this.campaignForm.delay_max || 7),
+            schedule_enabled: !!this.campaignForm.schedule_enabled,
+            schedule_slots: this.campaignForm.schedule_slots || '',
+          };
+          const res = await this.apiFetch('/api/campaigns/topics/' + this.selectedTopic.id, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+          if (res.ok) {
+            this.campaignForm = {title:'', target_link:'', caption:'', delay_min:1, delay_max:7, schedule_enabled:false, schedule_slots:''};
+            await this.loadCampaigns(this.selectedTopic.id);
+            await this.loadSummary();
+            this.notify('success', 'Campaign created', 'Đã lưu campaign mới.');
+          } else {
+            this.notify('error', 'Create failed', 'Không thể tạo campaign.');
+          }
+        },
+        openCampaignEditor(campaign) {
+          this.editingCampaign = {...campaign};
+          this.openDrawer('campaign', campaign.title, campaign.status || 'draft', {...campaign});
+        },
+        async openCampaignRuns(campaign) {
+          const params = new URLSearchParams({limit: String(this.paging.campaigns.limit)});
+          const res = await this.apiFetch('/api/runs/campaigns/' + campaign.id + '?' + params.toString());
+          const runs = await res.json();
+          this.openDrawer('campaign', campaign.title, campaign.status || 'draft', {...campaign, runs});
+        },
+        cancelCampaignEdit() {
+          this.editingCampaign = null;
+        },
+        async saveCampaignEdit() {
+          if (!this.editingCampaign) return;
+          const res = await this.apiFetch('/api/campaigns/' + this.editingCampaign.id, {
+            method:'PATCH',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              title: this.editingCampaign.title,
+              target_link: this.editingCampaign.target_link,
+              caption: this.editingCampaign.caption,
+              delay_min: Number(this.editingCampaign.delay_min || 1),
+              delay_max: Number(this.editingCampaign.delay_max || 7),
+              schedule_enabled: !!this.editingCampaign.schedule_enabled,
+              schedule_slots: this.editingCampaign.schedule_slots || '',
+            })
+          });
+          if (res.ok) {
+            this.editingCampaign = null;
+            this.notify('success', 'Campaign updated', 'Đã lưu thay đổi.');
+            if (this.selectedTopic) await this.loadCampaigns(this.selectedTopic.id);
+          } else {
+            this.notify('error', 'Update failed', 'Không thể cập nhật campaign.');
+          }
+        },
+        async runCampaign(id) {
+          await this.apiFetch('/api/campaigns/' + id + '/run', {method:'POST'});
+          await this.refreshAll();
+          this.notify('success', 'Queued', 'Campaign đã được đẩy vào hàng đợi.');
+        },
+        async deleteCampaign(id) {
+          this.confirmDelete('campaign', id, 'campaign');
+        },
+        async saveSetting(s) {
+          const res = await this.apiFetch('/api/settings', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({key: s.key, value: s.value})
+          });
+          if (res.ok) {
+            this.notify('success', 'Setting saved', 'Đã cập nhật thiết lập.');
+            await this.loadSettings();
+          } else {
+            this.notify('error', 'Save failed', 'Không thể lưu setting.');
+          }
+        },
+        async tickScheduler() {
+          const res = await this.apiFetch('/api/internal/scheduler/tick', {method:'POST'});
+          if (res.ok) {
+            const data = await res.json();
+            this.notify('success', 'Scheduler tick', `Enqueued: ${(data.enqueued || []).length}`);
+            await this.refreshAll();
+          } else {
+            this.notify('error', 'Tick failed', 'Không thể chạy scheduler tick.');
+          }
+        },
+        openDrawer(type, title, subtitle, metrics) {
+          this.drawer = {open: true, type, title, subtitle, metrics, runs: metrics.runs || [], jobs: metrics.jobs || []};
+        },
+        closeDrawer() {
+          this.drawer = {open: false, type: '', title: '', subtitle: '', metrics: {}, runs: [], jobs: []};
+        },
+        async openRunDetail(run) {
+          const res = await this.apiFetch('/api/runs/campaign-runs/' + run.id);
+          const detail = await res.json();
+          const params = new URLSearchParams({campaign_id: run.campaign_id, limit: String(this.paging.logs.limit)});
+          const jobsRes = await this.apiFetch('/api/runs/jobs?' + params.toString());
+          const jobs = await jobsRes.json();
+          this.drawer = {
+            open: true,
+            type: 'run',
+            title: run.slot_key || run.id,
+            subtitle: run.status || 'pending',
+            metrics: detail || run,
+            runs: [],
+            jobs,
+          };
+        },
+        async openJobDetail(job) {
+          const res = await this.apiFetch('/api/runs/jobs/' + job.id);
+          const detail = await res.json();
+          this.drawer = {
+            open: true,
+            type: 'job',
+            title: job.job_type,
+            subtitle: job.status || 'pending',
+            metrics: detail || job,
+            runs: [],
+            jobs: [],
+          };
+        },
+        nextPage(key) {
+          this.paging[key].offset += this.paging[key].limit;
+          if (key === 'groups') this.loadGroups();
+          if (key === 'topics' && this.selectedGroup) this.loadTopics(this.selectedGroup.id);
+          if (key === 'campaigns' && this.selectedTopic) this.loadCampaigns(this.selectedTopic.id);
+          if (key === 'logs') this.loadLogs();
+        },
+        prevPage(key) {
+          this.paging[key].offset = Math.max(0, this.paging[key].offset - this.paging[key].limit);
+          if (key === 'groups') this.loadGroups();
+          if (key === 'topics' && this.selectedGroup) this.loadTopics(this.selectedGroup.id);
+          if (key === 'campaigns' && this.selectedTopic) this.loadCampaigns(this.selectedTopic.id);
+          if (key === 'logs') this.loadLogs();
+        },
+        applySearch(key) {
+          this.paging[key].offset = 0;
+          if (key === 'groups') this.loadGroups();
+          if (key === 'topics' && this.selectedGroup) this.loadTopics(this.selectedGroup.id);
+          if (key === 'campaigns' && this.selectedTopic) this.loadCampaigns(this.selectedTopic.id);
+          if (key === 'logs') this.loadLogs();
+        },
+      };
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+from fastapi import APIRouter
+
+from app.repositories.content_repo import create_event
+from app.repositories.system_repo import (
+    create_account as repo_create_account,
+    delete_account as repo_delete_account,
+    get_account_by_id,
+    list_accounts as repo_list_accounts,
+    update_account as repo_update_account,
+)
+from app.schemas.accounts import AccountCreate, AccountUpdate
+from app.schemas.common import StatusResponse
+from app.services.account_service import test_account_connection
+
+router = APIRouter()
+
+
+@router.get("")
+def list_accounts():
+    return repo_list_accounts()
+
+
+@router.post("", response_model=StatusResponse)
+def create_account_api(payload: AccountCreate):
+    row = repo_create_account(payload.model_dump())
+    return {"ok": bool(row)}
+
+
+@router.patch("/{account_id}", response_model=StatusResponse)
+def update_account_api(account_id: str, payload: AccountUpdate):
+    row = repo_update_account(account_id, payload.model_dump(exclude_none=True))
+    return {"ok": bool(row)}
+
+
+@router.delete("/{account_id}", response_model=StatusResponse)
+def delete_account_api(account_id: str):
+    repo_delete_account(account_id)
+    return {"ok": True}
+
+
+@router.post("/{account_id}/test")
+async def test_account_api(account_id: str):
+    account = get_account_by_id(account_id)
+    if not account:
+        return {"ok": False, "status": "not_found", "message": "Account not found"}
+    result = await test_account_connection(account)
+    create_event(
+        "info" if result.get("ok") else "error",
+        "account_test",
+        result.get("message", ""),
+        {"account_id": account_id, **result},
+    )
+    return result

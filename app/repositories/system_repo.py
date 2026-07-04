@@ -1,0 +1,84 @@
+from __future__ import annotations
+
+from typing import Any
+
+from app.core.db import get_supabase_client
+
+
+def _client():
+    return get_supabase_client()
+
+
+def list_accounts():
+    return _client().table("tg_accounts").select("*").order("created_at", desc=True).execute().data or []
+
+
+def get_account_by_id(account_id: str):
+    rows = _client().table("tg_accounts").select("*").eq("id", account_id).limit(1).execute().data or []
+    return rows[0] if rows else None
+
+
+def create_account(payload: dict[str, Any]):
+    return (_client().table("tg_accounts").insert(payload).execute().data or [None])[0]
+
+
+def update_account(account_id: str, payload: dict[str, Any]):
+    return (_client().table("tg_accounts").update(payload).eq("id", account_id).execute().data or [None])[0]
+
+
+def delete_account(account_id: str):
+    _client().table("tg_accounts").delete().eq("id", account_id).execute()
+    return True
+
+
+def list_settings():
+    return _client().table("settings").select("*").order("key").execute().data or []
+
+
+def upsert_setting(key: str, value: Any):
+    return (_client().table("settings").upsert({"key": key, "value": value}).execute().data or [None])[0]
+
+
+def list_profiles():
+    return _client().table("profiles").select("*").order("created_at", desc=True).execute().data or []
+
+
+def update_profile_role(profile_id: str, role: str):
+    return (_client().table("profiles").update({"role": role}).eq("id", profile_id).execute().data or [None])[0]
+
+
+def insert_audit_log(*, actor_id: str | None, action: str, entity_type: str, entity_id: str | None = None, metadata: dict[str, Any] | None = None):
+    payload = {
+        "actor_id": actor_id,
+        "action": action,
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "metadata": metadata or {},
+    }
+    return (_client().table("audit_logs").insert(payload).execute().data or [payload])[0]
+
+
+def count_profiles_by_role(role: str | None = None):
+    query = _client().table("profiles").select("id", count="exact")
+    if role:
+        query = query.eq("role", role)
+    return query.execute().count or 0
+
+
+def list_logs(*, entity_type: str | None = None, entity_id: str | None = None, level: str | None = None, limit: int = 100, q: str | None = None):
+    query = _client().table("content_events").select("*").order("created_at", desc=True).limit(limit)
+    if entity_type == "group" and entity_id:
+        query = query.eq("group_id", entity_id)
+    elif entity_type == "topic" and entity_id:
+        query = query.eq("topic_id", entity_id)
+    elif entity_type == "campaign" and entity_id:
+        query = query.eq("campaign_id", entity_id)
+    if level:
+        query = query.eq("level", level)
+    if q:
+        query = query.or_(f"code.ilike.%{q}%,message.ilike.%{q}%")
+    return query.execute().data or []
+
+
+def recent_jobs(limit: int = 10):
+    return _client().table("queue_jobs").select("*").order("created_at", desc=True).limit(limit).execute().data or []

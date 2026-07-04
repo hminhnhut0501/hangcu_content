@@ -1,0 +1,3 @@
+class NotConfiguredError(RuntimeError):
+    pass
+
