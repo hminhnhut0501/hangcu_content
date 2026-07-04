@@ -63,6 +63,7 @@ export default function SettingsPage() {
   const [tabValue, setTabValue] = useState(0);
   const [toast, setToast] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'warning' }>({ show: false, msg: '', type: 'success' });
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
+  const [saveDebug, setSaveDebug] = useState<{ patchResponse?: unknown; freshRow?: AccountRow | null }>({});
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -87,7 +88,7 @@ export default function SettingsPage() {
   const createOrUpdateAccount = async () => {
     try {
       if (selectedAccount?.id) {
-        await fetchApi(`/api/accounts/${selectedAccount.id}`, {
+        const patchResponse = await fetchApi(`/api/accounts/${selectedAccount.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
             name: form.name,
@@ -101,6 +102,7 @@ export default function SettingsPage() {
         });
         const updatedAccounts = await refresh();
         const freshAccount = (updatedAccounts || []).find((item) => item.id === selectedAccount.id);
+        setSaveDebug({ patchResponse, freshRow: freshAccount || null });
         const freshQuota = Number(freshAccount?.daily_job_limit || 0);
         if (freshQuota > 0) {
           notify(`Đã cập nhật account. Loaded from backend quota: ${freshQuota}.`, 'success');
@@ -108,7 +110,7 @@ export default function SettingsPage() {
           notify('Đã cập nhật account, nhưng quota backend vẫn chưa hợp lệ. Kiểm tra lại daily job limit hoặc refresh dữ liệu.', 'warning');
         }
       } else {
-        await fetchApi('/api/accounts', {
+        const createResponse = await fetchApi('/api/accounts', {
           method: 'POST',
           body: JSON.stringify({
             name: form.name,
@@ -119,6 +121,7 @@ export default function SettingsPage() {
             is_active: false,
           }),
         });
+        setSaveDebug({ patchResponse: createResponse, freshRow: null });
         notify('Đã tạo account.', 'success');
       }
       setSelectedAccount(null);
@@ -327,6 +330,9 @@ export default function SettingsPage() {
                       ? `Current form value is valid: ${selectedQuotaValue}`
                       : 'Current form value is invalid: quota not set'}
                   </Typography>
+                  <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>
+                    Raw backend row quota: {String(selectedAccount?.daily_job_limit ?? 'null')}
+                  </Typography>
                 </Box>
               )}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -343,6 +349,19 @@ export default function SettingsPage() {
                   helperText={selectedAccount ? `Backend ${selectedQuotaLoadedFromBackend ? 'loaded' : 'missing'} · current value ${selectedQuotaValue || 0}` : 'Default new account value = 30'}
                   fullWidth
                 />
+                {selectedAccount && (
+                  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(148, 163, 184, 0.15)' }}>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                      Save debug: patch ok = {String((saveDebug.patchResponse as { ok?: boolean } | undefined)?.ok ?? 'unknown')}
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                      Save debug: fresh quota = {String(saveDebug.freshRow?.daily_job_limit ?? 'null')}
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                      Save debug: fresh status = {String(saveDebug.freshRow?.status ?? 'n/a')}
+                    </Typography>
+                  </Box>
+                )}
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Button variant="contained" startIcon={<SaveIcon />} onClick={createOrUpdateAccount}>
                     {selectedAccount ? 'Save changes' : 'Create account'}
