@@ -64,7 +64,6 @@ export default function SettingsPage() {
   const [tabValue, setTabValue] = useState(0);
   const [toast, setToast] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'warning' }>({ show: false, msg: '', type: 'success' });
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
-  const [saveDebug, setSaveDebug] = useState<{ patchResponse?: unknown; freshRow?: AccountRow | null }>({});
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -89,7 +88,7 @@ export default function SettingsPage() {
   const createOrUpdateAccount = async () => {
     try {
       if (selectedAccount?.id) {
-        const patchResponse = await fetchApi(`/api/accounts/${selectedAccount.id}`, {
+        await fetchApi(`/api/accounts/${selectedAccount.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
             name: trimmedName,
@@ -101,12 +100,10 @@ export default function SettingsPage() {
             daily_job_limit: Number(form.daily_job_limit || 30),
           }),
         });
-        const freshAccount = (patchResponse as { row?: AccountRow | null } | undefined)?.row || null;
-        setSaveDebug({ patchResponse, freshRow: freshAccount });
         await refresh();
         notify('Đã cập nhật account.', 'success');
       } else {
-        const createResponse = await fetchApi('/api/accounts', {
+        await fetchApi('/api/accounts', {
           method: 'POST',
           body: JSON.stringify({
             name: trimmedName,
@@ -118,12 +115,7 @@ export default function SettingsPage() {
             daily_job_limit: Number(form.daily_job_limit || 30),
           }),
         });
-        const updatedAccounts = await refresh();
-        const freshAccount =
-          (createResponse as { row?: AccountRow | null } | undefined)?.row ||
-          (updatedAccounts || []).find((item) => item.name === trimmedName && (item.phone || '') === (form.phone || '')) ||
-          null;
-        setSaveDebug({ patchResponse: createResponse, freshRow: freshAccount });
+        await refresh();
         notify('Đã tạo account.', 'success');
       }
       setSelectedAccount(null);
@@ -217,6 +209,7 @@ export default function SettingsPage() {
   const selectedQuotaValue = Number(form.daily_job_limit || 0);
   const trimmedName = form.name.trim();
   const canCreateAccount = trimmedName.length > 0;
+  const isQuotaMismatch = (account: AccountRow) => (Number(account.daily_job_limit || 0) <= 0) || (account.quota_source || 'default') !== 'backend';
 
   return (
     <Box>
@@ -291,7 +284,7 @@ export default function SettingsPage() {
                                 />
                                 <Chip
                                   size="small"
-                                  label={`quota: ${Number(account.daily_job_limit || 0) > 0 ? account.daily_job_limit : 30}`}
+                                  label={`Quota source: ${(account.quota_source || 'default') === 'backend' ? 'backend' : 'default'}`}
                                   color={(account.quota_source || 'default') === 'backend' ? 'success' : 'warning'}
                                   variant="outlined"
                                   sx={{ ml: 1 }}
@@ -305,7 +298,7 @@ export default function SettingsPage() {
                             </Typography>
                           )}
                           <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, maxWidth: 240, display: 'block' }}>
-                            {`Quota ${Number(account.daily_job_count || 0)} / ${Number(account.daily_job_limit || 30)}`}
+                            {`Effective quota ${Number(account.daily_job_count || 0)} / ${Number(account.daily_job_limit || 30)}`}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -314,7 +307,9 @@ export default function SettingsPage() {
                         <TableCell align="right">
                           <Button size="small" onClick={() => loadAccountToForm(account)}>Edit</Button>
                           <Button size="small" startIcon={<ScienceIcon />} onClick={() => testAccount(account)}>Test</Button>
-                          <Button size="small" color="info" onClick={() => normalizeQuota(account)}>Normalize quota</Button>
+                          {isQuotaMismatch(account) && (
+                            <Button size="small" color="info" onClick={() => normalizeQuota(account)}>Normalize quota</Button>
+                          )}
                           {account.is_active ? (
                             <Button size="small" color="warning" startIcon={<PauseCircleIcon />} onClick={() => pauseAccount(account)}>Pause</Button>
                           ) : (
@@ -373,16 +368,18 @@ export default function SettingsPage() {
                   fullWidth
                 />
                 {selectedAccount && (
-                  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(148, 163, 184, 0.15)' }}>
-                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                      Save debug: patch ok = {String((saveDebug.patchResponse as { ok?: boolean } | undefined)?.ok ?? 'unknown')}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                      Save debug: fresh quota = {String(saveDebug.freshRow?.daily_job_limit ?? 'null')}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                      Save debug: quota source = {String(saveDebug.freshRow?.quota_source ?? 'n/a')}
-                    </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Chip
+                      size="small"
+                      label={`Quota source: ${(selectedAccount.quota_source || 'default') === 'backend' ? 'backend' : 'default'}`}
+                      color={(selectedAccount.quota_source || 'default') === 'backend' ? 'success' : 'warning'}
+                      variant="outlined"
+                    />
+                    <Chip
+                      size="small"
+                      label={`Effective quota: ${Number(selectedAccount.daily_job_limit || 30)}`}
+                      variant="outlined"
+                    />
                   </Box>
                 )}
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
