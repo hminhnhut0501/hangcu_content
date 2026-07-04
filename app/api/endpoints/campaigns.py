@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.repositories.content_repo import create_event, delete_row, get_row, insert_row, list_rows_filtered, now_iso, pick_account_for_job, update_row
+from app.repositories.content_repo import create_event, delete_row, get_row, insert_row, list_rows_filtered, now_iso, update_row
 from app.schemas.campaigns import CampaignCreate, CampaignUpdate
 from app.schemas.responses import DeleteResponse, EntityResponse
 from app.services.scheduler_service import schedule_fields
@@ -85,7 +85,6 @@ def run_campaign(campaign_id: str):
                 "campaign_id": campaign_id,
                 "group_id": campaign.get("group_id"),
                 "topic_id": campaign.get("topic_id"),
-                "account_id": (pick_account_for_job() or {}).get("id"),
                 "status": "pending",
                 "priority": 100,
                 "payload": {"campaign_id": campaign_id, "campaign_run_id": run["id"]},

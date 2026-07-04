@@ -151,7 +151,6 @@ def enqueue_due_groups():
                     "campaign_id": campaign["id"],
                     "group_id": group["id"],
                     "topic_id": campaign.get("topic_id"),
-                    "account_id": (pick_account_for_job() or {}).get("id"),
                     "status": "pending",
                     "priority": 100,
                     "payload": {
@@ -222,7 +221,6 @@ def enqueue_due_campaigns():
             {
                 "job_type": "run_campaign",
                 "campaign_id": campaign["id"],
-                "account_id": (pick_account_for_job() or {}).get("id"),
                 "status": "pending",
                 "priority": 100,
                 "payload": {"campaign_id": campaign["id"], "campaign_run_id": run_row["id"]},
