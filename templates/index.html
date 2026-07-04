@@ -730,19 +730,23 @@
           if (this.authenticated) await this.refreshAll();
         },
         async login() {
-          const res = await this.apiFetch('/api/auth/login', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify(this.loginForm),
-          });
-          const data = await res.json();
-          if (res.ok && data.ok) {
-            this.currentUser = data.user || this.currentUser;
-            this.authenticated = true;
-            this.notify('success', 'Đã đăng nhập', 'Cookie session đã được tạo.');
-            await this.refreshAll();
-          } else {
-            this.notify('error', 'Login failed', data.detail || 'Không thể đăng nhập.');
+          try {
+            const res = await this.apiFetch('/api/auth/login', {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify(this.loginForm),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok) {
+              this.currentUser = data.user || this.currentUser;
+              this.authenticated = true;
+              this.notify('success', 'Đã đăng nhập', 'Cookie session đã được tạo.');
+              await this.refreshAll();
+            } else {
+              this.notify('error', 'Login failed', data.detail || data.message || `HTTP ${res.status}`);
+            }
+          } catch (error) {
+            this.notify('error', 'Login failed', error?.message || 'Không thể đăng nhập.');
           }
         },
         async logout() {
