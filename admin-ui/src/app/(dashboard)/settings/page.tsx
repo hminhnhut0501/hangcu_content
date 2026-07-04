@@ -91,7 +91,7 @@ export default function SettingsPage() {
         const patchResponse = await fetchApi(`/api/accounts/${selectedAccount.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
-            name: form.name,
+            name: trimmedName,
             phone: form.phone || null,
             api_id: form.api_id ? Number(form.api_id) : null,
             api_hash: form.api_hash || null,
@@ -113,7 +113,7 @@ export default function SettingsPage() {
         const createResponse = await fetchApi('/api/accounts', {
           method: 'POST',
           body: JSON.stringify({
-            name: form.name,
+            name: trimmedName,
             phone: form.phone || null,
             api_id: form.api_id ? Number(form.api_id) : null,
             api_hash: form.api_hash || null,
@@ -203,6 +203,8 @@ export default function SettingsPage() {
   const selectedBackendQuota = selectedAccount?.daily_job_limit;
   const selectedQuotaLoadedFromBackend = selectedAccount ? selectedBackendQuota !== null && selectedBackendQuota !== undefined : false;
   const selectedQuotaValue = Number(form.daily_job_limit || 0);
+  const trimmedName = form.name.trim();
+  const canCreateAccount = trimmedName.length > 0;
 
   return (
     <Box>
@@ -337,7 +339,14 @@ export default function SettingsPage() {
                 </Box>
               )}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField label="Tên hiển thị" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} fullWidth />
+                <TextField
+                  label="Tên hiển thị"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  error={!selectedAccount && form.name.trim().length === 0}
+                  helperText={!selectedAccount && form.name.trim().length === 0 ? 'Tên hiển thị không được để trống.' : ' '}
+                  fullWidth
+                />
                 <TextField label="Phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} fullWidth />
                 <TextField label="API ID" value={form.api_id} onChange={e => setForm({ ...form, api_id: e.target.value })} fullWidth />
                 <TextField label="API HASH" value={form.api_hash} onChange={e => setForm({ ...form, api_hash: e.target.value })} fullWidth />
@@ -364,7 +373,12 @@ export default function SettingsPage() {
                   </Box>
                 )}
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Button variant="contained" startIcon={<SaveIcon />} onClick={createOrUpdateAccount}>
+                  <Button
+                    variant="contained"
+                    startIcon={<SaveIcon />}
+                    onClick={createOrUpdateAccount}
+                    disabled={!selectedAccount ? !canCreateAccount : false}
+                  >
                     {selectedAccount ? 'Save changes' : 'Create account'}
                   </Button>
                   <Button variant="outlined" onClick={() => loadAccountToForm(null)}>Reset</Button>
