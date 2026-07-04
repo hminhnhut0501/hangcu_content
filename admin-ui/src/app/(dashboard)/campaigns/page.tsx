@@ -85,6 +85,16 @@ export default function CampaignsPage() {
     }
   };
 
+  const handleRunNow = async (id: string) => {
+    try {
+      await fetchApi(`/api/campaigns/${id}/run`, { method: 'POST' });
+      setToast({ show: true, msg: 'Đã đưa campaign vào queue.', type: 'success' });
+      mutate();
+    } catch (err) {
+      setToast({ show: true, msg: err instanceof Error ? err.message : 'Không thể run campaign.', type: 'error' });
+    }
+  };
+
   const updateEditingItem = (patch: Partial<CampaignRow>) => {
     setEditingItem((current) => current ? { ...current, ...patch } : current);
   };
@@ -317,6 +327,14 @@ export default function CampaignsPage() {
                     />
                   </TableCell>
                   <TableCell align="right">
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      sx={{ mr: 1, textTransform: 'none' }}
+                      onClick={() => handleRunNow(camp.id)}
+                    >
+                      Run ngay
+                    </Button>
                     <IconButton size="small" color="primary" sx={{ mr: 1 }} onClick={() => setEditingItem(camp)}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" color="error" onClick={() => handleDelete(camp.id)}><DeleteIcon fontSize="small" /></IconButton>
                   </TableCell>
