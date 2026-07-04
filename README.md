@@ -31,6 +31,7 @@ Optional:
 - `APP_ENV`
 - `APP_TIMEZONE`
 - `PORT`
+- `ADMIN_UI_URL`
 - `BOOTSTRAP_OWNER_EMAIL`
 - `BOOTSTRAP_OWNER_PASSWORD`
 - `TG_API_ID`
@@ -70,6 +71,7 @@ Optional:
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `SUPABASE_DB_URL`
+   - `ADMIN_UI_URL` nếu admin-ui deploy tách riêng
    - `BOOTSTRAP_OWNER_EMAIL` if needed
    - `BOOTSTRAP_OWNER_PASSWORD` if needed
 4. Deploy and confirm `/` loads.

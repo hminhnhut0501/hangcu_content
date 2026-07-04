@@ -12,6 +12,7 @@ class Settings:
     supabase_db_url: str = os.getenv("SUPABASE_DB_URL", "")
     bootstrap_owner_email: str = os.getenv("BOOTSTRAP_OWNER_EMAIL", "")
     bootstrap_owner_password: str = os.getenv("BOOTSTRAP_OWNER_PASSWORD", "")
+    admin_ui_url: str = os.getenv("ADMIN_UI_URL", "").rstrip("/")
 
 
 settings = Settings()

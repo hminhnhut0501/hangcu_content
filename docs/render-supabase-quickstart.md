@@ -40,6 +40,7 @@ Làm đúng theo thứ tự dưới đây.
    - `APP_NAME=Content Hub OS`
    - `APP_ENV=production`
    - `APP_TIMEZONE=Asia/Ho_Chi_Minh`
+   - `ADMIN_UI_URL` trỏ tới URL Render của admin-ui
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `SUPABASE_DB_URL`

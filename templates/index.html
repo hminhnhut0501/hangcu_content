@@ -103,10 +103,16 @@
         <div class="actions">
           <a class="btn primary" href="/docs">API Docs</a>
           <a class="btn secondary" href="/health">Health Check</a>
-          <a class="btn secondary" href="http://127.0.0.1:3000" rel="noreferrer">Mở admin-ui</a>
+          <a class="btn secondary" href="{{ admin_ui_url or '/' }}" rel="noreferrer">
+            {% if admin_ui_url %}
+            Mở admin-ui
+            {% else %}
+            Mở admin-ui trong cùng origin
+            {% endif %}
+          </a>
         </div>
         <div class="note">
-          Nếu `admin-ui` đang chạy riêng, hãy dùng nó để tạo group, topic, campaign, run và logs.
+          Nếu `admin-ui` đang chạy riêng, hãy set `ADMIN_UI_URL` để nút mở đúng domain deploy.
         </div>
       </section>
     </main>

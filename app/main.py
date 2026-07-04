@@ -25,6 +25,7 @@ def root(request: Request):
             "request": request,
             "app_name": settings.app_name,
             "app_env": settings.app_env,
+            "admin_ui_url": settings.admin_ui_url or "",
             "current_user": user.__dict__ if user else None,
         },
     )
