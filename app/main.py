@@ -33,7 +33,10 @@ def root(request: Request):
 @app.on_event("startup")
 def startup_migrations():
     if settings.supabase_url and settings.supabase_service_role_key and settings.supabase_db_url:
-        migrate()
+        try:
+            migrate()
+        except Exception as exc:
+            print(f"[startup] migration skipped: {exc}")
 
 
 @app.on_event("startup")
