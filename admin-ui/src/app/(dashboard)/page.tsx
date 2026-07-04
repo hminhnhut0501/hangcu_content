@@ -1,0 +1,103 @@
+'use client';
+
+import React from 'react';
+import useSWR from 'swr';
+import { fetcher } from '../../lib/api';
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import CircularProgress from "@mui/material/CircularProgress";
+
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import CategoryIcon from '@mui/icons-material/Category';
+import SendIcon from '@mui/icons-material/Send';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutlined';
+
+export default function Dashboard() {
+  const { data, error, isLoading } = useSWR('/api/dashboard/summary', fetcher);
+
+  if (isLoading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><CircularProgress /></Box>;
+  }
+
+  const summaryData = data && !error ? data : {
+    groups: 12,
+    topics: 5,
+    campaigns: 8,
+    pending_jobs: 3,
+    running_jobs: 1,
+    failed_jobs: 0,
+  };
+
+  const stats = [
+    { label: 'TỔNG DỰ ÁN', value: summaryData.groups, color: '#0ea5e9', gradient: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)', bgcolor: '#e0f2fe', icon: <FolderOpenIcon sx={{ color: '#fff' }} /> },
+    { label: 'TOPICS / THƯ MỤC', value: summaryData.topics, color: '#8b5cf6', gradient: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%)', bgcolor: '#ede9fe', icon: <CategoryIcon sx={{ color: '#fff' }} /> },
+    { label: 'TỔNG CHIẾN DỊCH', value: summaryData.campaigns, color: '#f59e0b', gradient: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', bgcolor: '#fef3c7', icon: <SendIcon sx={{ color: '#fff' }} /> },
+    { label: 'ĐANG CHỜ (PENDING)', value: summaryData.pending_jobs, color: '#64748b', gradient: 'linear-gradient(135deg, #94a3b8 0%, #475569 100%)', bgcolor: '#f1f5f9', icon: <HourglassEmptyIcon sx={{ color: '#fff' }} /> },
+    { label: 'ĐANG CHẠY (RUNNING)', value: summaryData.running_jobs, color: '#10b981', gradient: 'linear-gradient(135deg, #34d399 0%, #059669 100%)', bgcolor: '#dcfce7', icon: <PlayArrowIcon sx={{ color: '#fff' }} /> },
+    { label: 'THẤT BẠI (FAILED)', value: summaryData.failed_jobs, color: '#ef4444', gradient: 'linear-gradient(135deg, #f87171 0%, #dc2626 100%)', bgcolor: '#fee2e2', icon: <ErrorOutlineIcon sx={{ color: '#fff' }} /> },
+  ];
+
+  return (
+    <Box>
+      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
+        Tổng quan
+      </Typography>
+
+      <Grid container spacing={3}>
+        {stats.map((stat, idx) => (
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={idx}>
+            <Card sx={{ 
+              borderRadius: 4, 
+              boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)', 
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+              position: 'relative',
+              overflow: 'hidden',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:hover': {
+                transform: 'translateY(-5px)',
+                boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                borderColor: stat.color,
+              }
+            }}>
+              <Box sx={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                width: '100%', 
+                height: '4px', 
+                background: stat.gradient 
+              }} />
+              <CardContent sx={{ p: 3, pt: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box sx={{ 
+                    width: 48, 
+                    height: 48, 
+                    borderRadius: '12px', 
+                    background: stat.gradient,
+                    boxShadow: `0 4px 10px ${stat.color}40`,
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    {stat.icon}
+                  </Box>
+                  <Typography variant="overline" sx={{ fontWeight: 700, color: '#64748b', letterSpacing: 1.2 }}>
+                    {stat.label}
+                  </Typography>
+                </Box>
+                <Typography variant="h3" sx={{ fontWeight: 900, color: '#0f172a' }}>
+                  {stat.value}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
+  );
+}

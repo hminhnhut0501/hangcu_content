@@ -1,0 +1,223 @@
+'use client';
+
+import React, { useState } from 'react';
+import useSWR from 'swr';
+import { fetcher, fetchApi } from '../../../lib/api';
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Card from "@mui/material/Card";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Chip from "@mui/material/Chip";
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CircularProgress from '@mui/material/CircularProgress';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import TextField from '@mui/material/TextField';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
+
+export default function ProjectsPage() {
+  const { data: groups, error, isLoading, mutate } = useSWR('/api/groups?limit=100', fetcher);
+  const [toast, setToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({ show: false, msg: '', type: 'success' });
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xoá dự án này?')) return;
+    try {
+      await fetchApi(`/api/groups/${id}`, { method: 'DELETE' });
+      setToast({ show: true, msg: 'Xoá thành công.', type: 'success' });
+      mutate();
+    } catch (err) {
+      setToast({ show: true, msg: 'Lỗi khi xoá.', type: 'error' });
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (isCreating) {
+        await fetchApi(`/api/groups`, {
+          method: 'POST',
+          body: JSON.stringify({
+            name: editingItem.name,
+            source_link: editingItem.source_link,
+            target_link: editingItem.target_link,
+          })
+        });
+      } else {
+        await fetchApi(`/api/groups/${editingItem.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: editingItem.name,
+            source_link: editingItem.source_link,
+            target_link: editingItem.target_link,
+            auto_enabled: editingItem.auto_enabled,
+          })
+        });
+      }
+      setToast({ show: true, msg: 'Lưu thành công.', type: 'success' });
+      setEditingItem(null);
+      setIsCreating(false);
+      mutate();
+    } catch (err) {
+      setToast({ show: true, msg: 'Lưu thất bại.', type: 'error' });
+    }
+  };
+
+  const mockGroups = [
+    { id: 'proj_1', name: 'Dự án Phim Ảnh Telegram', source_link: 'https://t.me/movies_source', target_link: 'https://t.me/movies_target', auto_enabled: true },
+    { id: 'proj_2', name: 'Nhóm Crypto', source_link: 'https://t.me/crypto_vip', target_link: 'https://t.me/crypto_free', auto_enabled: false },
+  ];
+
+  const displayGroups = (!groups || error) ? mockGroups : groups;
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+          Dự án & Kênh
+        </Typography>
+        <Button 
+          variant="contained" 
+          startIcon={<AddIcon />}
+          onClick={() => {
+            setIsCreating(true);
+            setEditingItem({ name: '', source_link: '', target_link: '' });
+          }}
+        >
+          Thêm Dự án
+        </Button>
+      </Box>
+
+      <Card>
+        <TableContainer>
+          <Table>
+            <TableHead sx={{ bgcolor: '#f1f5f9' }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold' }}>Tên dự án</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Nguồn (Source)</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Đích (Target)</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Auto Push</TableCell>
+                <TableCell sx={{ fontWeight: 'bold', textAlign: 'right' }}>Thao tác</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {displayGroups.map((group: any) => (
+                <TableRow key={group.id} hover>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{group.name || 'No name'}</Typography>
+                    <Typography variant="caption" color="text.secondary">{group.id}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {group.source_link || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {group.target_link || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={group.auto_enabled ? 'Bật' : 'Tắt'} 
+                      size="small"
+                      color={group.auto_enabled ? 'info' : 'default'}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton color="info" onClick={() => {
+                      setIsCreating(false);
+                      setEditingItem(group);
+                    }} title="Sửa">
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton color="error" onClick={() => handleDelete(group.id)} title="Xoá">
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(!displayGroups || displayGroups.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
+                    <Typography color="text.secondary">Chưa có dự án nào.</Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Card>
+
+      <Dialog open={!!editingItem} onClose={() => setEditingItem(null)} fullWidth maxWidth="sm">
+        <form onSubmit={handleSave}>
+          <DialogTitle>{isCreating ? 'Thêm Dự án mới' : 'Sửa Dự án'}</DialogTitle>
+          <DialogContent dividers>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+              <TextField 
+                label="Tên dự án" 
+                fullWidth 
+                required
+                value={editingItem?.name || ''}
+                onChange={e => setEditingItem({...editingItem, name: e.target.value})}
+              />
+              <TextField 
+                label="Nguồn (Source Link)" 
+                fullWidth 
+                value={editingItem?.source_link || ''}
+                onChange={e => setEditingItem({...editingItem, source_link: e.target.value})}
+              />
+              <TextField 
+                label="Đích (Target Link)" 
+                fullWidth 
+                value={editingItem?.target_link || ''}
+                onChange={e => setEditingItem({...editingItem, target_link: e.target.value})}
+              />
+              {!isCreating && (
+                <FormControlLabel 
+                  control={
+                    <Switch 
+                      checked={editingItem?.auto_enabled || false}
+                      onChange={e => setEditingItem({...editingItem, auto_enabled: e.target.checked})}
+                    />
+                  } 
+                  label="Tự động Push (Auto Push)" 
+                />
+              )}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditingItem(null)}>Huỷ</Button>
+            <Button type="submit" variant="contained">Lưu</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      <Snackbar 
+        open={toast.show} 
+        autoHideDuration={3000} 
+        onClose={() => setToast({ ...toast, show: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity={toast.type} variant="filled" sx={{ width: '100%' }}>
+          {toast.msg}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+}
