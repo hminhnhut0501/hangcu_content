@@ -73,12 +73,27 @@
         <p class="text-xs text-slate-500 mt-1">{{ app_env }}</p>
       </div>
       <nav class="space-y-2 text-sm">
-        <button @click="tab='dashboard'" :class="tab==='dashboard' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Dashboard</button>
-        <button @click="tab='content'" :class="tab==='content' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Content Hub</button>
-        <button @click="tab='accounts'" :class="tab==='accounts' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Accounts</button>
-        <button x-show="currentUser?.role === 'owner' || currentUser?.role === 'admin'" @click="tab='admin'" :class="tab==='admin' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Admin</button>
-        <button @click="tab='settings'" :class="tab==='settings' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Settings</button>
-        <button @click="tab='logs'" :class="tab==='logs' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl">Logs</button>
+        <button @click="tab='dashboard'" :class="tab==='dashboard' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl flex items-center gap-3">
+          <svg class="w-5 h-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+          Tổng quan
+        </button>
+        <button @click="tab='projects'" :class="tab==='projects' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl flex items-center gap-3">
+          <svg class="w-5 h-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+          Dự án & Kênh
+        </button>
+        <button @click="tab='campaigns'" :class="tab==='campaigns' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl flex items-center gap-3">
+          <svg class="w-5 h-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+          Chiến dịch
+        </button>
+        <div class="pt-4 pb-2 text-xs font-bold text-slate-600 uppercase tracking-wider px-2">Cấu hình</div>
+        <button @click="tab='settings'" :class="tab==='settings' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl flex items-center gap-3">
+          <svg class="w-5 h-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          Hệ thống & TK
+        </button>
+        <button @click="tab='logs'" :class="tab==='logs' ? activeNav : inactiveNav" class="w-full text-left px-4 py-3 rounded-xl flex items-center gap-3">
+          <svg class="w-5 h-5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          Nhật ký
+        </button>
       </nav>
     </aside>
     <main class="flex-1 overflow-y-auto relative">
@@ -87,12 +102,11 @@
         <div>
           <div class="text-xs text-slate-500 uppercase tracking-[0.25em]">Workspace</div>
           <h2 class="text-xl font-bold" x-text="{
-            dashboard:'Dashboard',
-            content:'Content Hub',
-            accounts:'Accounts',
-            admin:'Admin',
-            settings:'Settings',
-            logs:'Logs'
+            dashboard:'Tổng quan',
+            projects:'Dự án & Kênh',
+            campaigns:'Chiến dịch',
+            settings:'Hệ thống & Tài khoản',
+            logs:'Nhật ký'
           }[tab] || 'Workspace'"></h2>
           <div class="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -107,7 +121,7 @@
           </div>
           <button @click="logout()" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 font-semibold">Logout</button>
           <button @click="refreshAll()" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-semibold">Refresh</button>
-          <button @click="tab='content'" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 font-semibold">Open Hub</button>
+          <button @click="tab='projects'" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 font-semibold">Dự án</button>
         </div>
       </header>
 
@@ -174,7 +188,7 @@
         </div>
       </section>
 
-      <section x-show="tab==='content'" class="p-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <section x-show="tab==='projects'" class="p-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div class="space-y-6">
           <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
             <h3 class="font-bold text-lg mb-4">Tạo Group</h3>
@@ -363,7 +377,97 @@
         </div>
       </section>
 
-      <section x-show="tab==='accounts'" class="p-8 grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <section x-show="tab==='campaigns'" class="p-8 space-y-6">
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex items-center justify-between">
+            <div><div class="text-xs uppercase tracking-[0.2em] text-slate-500">Campaign</div><div class="text-3xl font-black mt-1" x-text="summary.campaigns || 0"></div></div>
+            <div class="p-3 bg-cyan-500/20 text-cyan-400 rounded-xl"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg></div>
+          </div>
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex items-center justify-between">
+            <div><div class="text-xs uppercase tracking-[0.2em] text-slate-500">Đang chạy</div><div class="text-3xl font-black mt-1">0</div></div>
+            <div class="p-3 bg-purple-500/20 text-purple-400 rounded-xl"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+          </div>
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex items-center justify-between">
+            <div><div class="text-xs uppercase tracking-[0.2em] text-slate-500">Đã gửi</div><div class="text-3xl font-black mt-1">0</div></div>
+            <div class="p-3 bg-amber-500/20 text-amber-400 rounded-xl"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg></div>
+          </div>
+          <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex items-center justify-between">
+            <div><div class="text-xs uppercase tracking-[0.2em] text-slate-500">Preview Nhận</div><div class="text-3xl font-black mt-1">0</div></div>
+            <div class="p-3 bg-blue-500/20 text-blue-400 rounded-xl"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg></div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-bold text-lg">Danh sách campaign</h3>
+              <p class="text-sm text-slate-400">Quản lý các đợt phát sóng (Vui lòng chọn Kênh/Topic ở tab Dự án trước để tạo campaign)</p>
+            </div>
+            <button @click="tab='projects'" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold">+ Tạo campaign</button>
+          </div>
+          
+          <div class="flex items-center gap-3 mb-4 text-sm border-b border-slate-800 pb-3">
+             <div class="text-slate-400">Preview: <span class="font-bold text-slate-200">0 người</span></div>
+             <div class="px-2 py-1 rounded-full border border-emerald-500/30 text-emerald-400 text-xs font-bold">Active: 0</div>
+             <div class="px-2 py-1 rounded-full border border-orange-500/30 text-orange-400 text-xs font-bold">Hết hạn: 0</div>
+             <div class="px-2 py-1 rounded-full border border-slate-600 text-slate-400 text-xs">Chưa mua: 0</div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+              <thead class="text-xs uppercase tracking-wider text-slate-500 border-b border-slate-800">
+                <tr>
+                  <th class="py-3 px-4">Campaign</th>
+                  <th class="py-3 px-4">Tệp</th>
+                  <th class="py-3 px-4">Trạng thái</th>
+                  <th class="py-3 px-4">Tiến trình</th>
+                  <th class="py-3 px-4">Delay</th>
+                  <th class="py-3 px-4 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/50">
+                <!-- If no global campaigns loaded, show empty state -->
+                <tr x-show="!campaigns.length">
+                   <td colspan="6" class="py-8 text-center text-slate-500 text-sm">Chưa có dữ liệu. Vui lòng chọn Topic ở tab Dự án để hiển thị hoặc tạo mới.</td>
+                </tr>
+                <template x-for="c in campaigns" :key="c.id">
+                  <tr class="hover:bg-slate-800/30">
+                    <td class="py-3 px-4 font-semibold" x-text="c.title"></td>
+                    <td class="py-3 px-4 text-slate-400">--</td>
+                    <td class="py-3 px-4">
+                      <span class="px-2 py-1 rounded-full text-xs font-medium" 
+                            :class="c.status === 'running' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-500/10 text-slate-400'" 
+                            x-text="c.status || 'draft'"></span>
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="flex items-center gap-2">
+                        <div class="w-full bg-slate-800 rounded-full h-1.5 w-24">
+                          <div class="bg-cyan-500 h-1.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <span class="text-xs text-slate-500">0%</span>
+                      </div>
+                    </td>
+                    <td class="py-3 px-4 text-slate-400 text-xs"><span x-text="c.delay_min"></span>s - <span x-text="c.delay_max"></span>s</td>
+                    <td class="py-3 px-4 flex justify-end gap-2">
+                       <button @click="runCampaign(c.id)" class="p-2 rounded-lg hover:bg-emerald-500/20 text-emerald-400" title="Chạy"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg></button>
+                       <button @click="openCampaignEditor(c)" class="p-2 rounded-lg hover:bg-slate-700 text-slate-300" title="Sửa"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                       <button @click="confirmDelete('campaign', c.id, c.title)" class="p-2 rounded-lg hover:bg-rose-500/20 text-rose-400" title="Xóa"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section x-show="tab==='settings'" class="p-8 space-y-6">
+        <h2 class="text-2xl font-bold border-b border-slate-800 pb-4">Hệ thống & Tài khoản</h2>
+        
+        <!-- API Accounts -->
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
           <h3 class="font-bold text-lg mb-4">New Account</h3>
           <div class="space-y-3">
@@ -410,24 +514,26 @@
         </div>
       </section>
 
-      <section x-show="tab==='settings'" class="p-8 grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
-          <h3 class="font-bold text-lg mb-4">Settings</h3>
-          <div class="space-y-3">
-            <template x-for="s in settingsList" :key="s.key">
-              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
-                <div class="text-xs uppercase tracking-[0.2em] text-slate-500" x-text="s.key"></div>
-                <div class="mt-2 flex items-center gap-3">
-                  <input x-model="s.value" class="flex-1 rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
-                  <button @click="saveSetting(s)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Save</button>
+        <!-- Platform Settings -->
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+            <h3 class="font-bold text-lg mb-4">Settings</h3>
+            <div class="space-y-3">
+              <template x-for="s in settingsList" :key="s.key">
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                  <div class="text-xs uppercase tracking-[0.2em] text-slate-500" x-text="s.key"></div>
+                  <div class="mt-2 flex items-center gap-3">
+                    <input x-model="s.value" class="flex-1 rounded-xl bg-slate-950 border border-slate-800 px-4 py-3">
+                    <button @click="saveSetting(s)" class="px-3 py-2 rounded-lg bg-cyan-500 text-slate-950 text-xs font-bold">Save</button>
+                  </div>
                 </div>
-              </div>
-            </template>
+              </template>
+            </div>
           </div>
         </div>
-      </section>
 
-      <section x-show="tab==='admin'" class="p-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <!-- Admin Roles -->
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
           <div>
             <h3 class="font-bold text-lg">Bootstrap / Invites</h3>
@@ -477,6 +583,7 @@
               </div>
             </template>
           </div>
+        </div>
         </div>
       </section>
 
