@@ -61,18 +61,18 @@ async def test_account_api(account_id: str):
     return result
 
 
-@router.post("/{account_id}/resume", response_model=StatusResponse)
+@router.post("/{account_id}/resume")
 def resume_account_api(account_id: str):
     row = repo_resume_account(account_id)
     if not row:
-        return {"ok": False}
+        return {"ok": False, "row": None}
     create_event(
         "info",
         "account_resumed",
         "Telegram account resumed manually",
         {"account_id": account_id},
     )
-    return {"ok": True}
+    return {"ok": True, "row": row}
 
 
 @router.post("/{account_id}/pause", response_model=StatusResponse)

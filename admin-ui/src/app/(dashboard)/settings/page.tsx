@@ -154,8 +154,9 @@ export default function SettingsPage() {
 
   const resumeAccount = async (account: AccountRow) => {
     try {
-      await fetchApi(`/api/accounts/${account.id}/resume`, { method: 'POST' });
-      notify('Đã resume account.', 'success');
+      const res = await fetchApi(`/api/accounts/${account.id}/resume`, { method: 'POST' });
+      const resumedRow = (res as { row?: AccountRow | null } | undefined)?.row || null;
+      notify(resumedRow?.is_active ? 'Đã resume account.' : 'Resume chưa đổi trạng thái, kiểm tra backend.', resumedRow?.is_active ? 'success' : 'warning');
       await refresh();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Không thể resume account.', 'error');
