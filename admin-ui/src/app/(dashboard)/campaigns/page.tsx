@@ -51,6 +51,18 @@ type TopicRow = {
   name: string;
 };
 
+type CampaignStatusTone = 'default' | 'error' | 'info' | 'success' | 'warning';
+
+function getCampaignFlowBadge(status?: string | null): { label: string; color: CampaignStatusTone; bg: string; fg: string } {
+  const value = String(status || '').toLowerCase();
+  if (value === 'queued') return { label: 'Queued', color: 'warning', bg: '#fef3c7', fg: '#92400e' };
+  if (value === 'running') return { label: 'Running', color: 'info', bg: '#dbeafe', fg: '#1d4ed8' };
+  if (value === 'done' || value === 'sent') return { label: 'Sent', color: 'success', bg: '#dcfce7', fg: '#166534' };
+  if (value === 'failed') return { label: 'Failed', color: 'error', bg: '#fee2e2', fg: '#991b1b' };
+  if (value === 'scheduled') return { label: 'Waiting worker', color: 'warning', bg: '#fef3c7', fg: '#92400e' };
+  return { label: 'Waiting worker', color: 'default', bg: '#f1f5f9', fg: '#475569' };
+}
+
 export default function CampaignsPage() {
   const { data: campaigns, error, isLoading, mutate } = useSWR('/api/campaigns?limit=100', fetcher);
   const { data: topics } = useSWR('/api/topics?limit=200', fetcher);
@@ -307,16 +319,22 @@ export default function CampaignsPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Chip 
-                      label={camp.status || 'draft'} 
-                      size="small"
-                      sx={{ 
-                        bgcolor: ['active', 'scheduled', 'queued', 'running'].includes(String(camp.status || '')) ? '#dcfce7' : '#f1f5f9',
-                        color: ['active', 'scheduled', 'queued', 'running'].includes(String(camp.status || '')) ? '#166534' : '#475569',
-                        fontWeight: 'bold',
-                        fontSize: '0.7rem'
-                      }}
-                    />
+                    {(() => {
+                      const badge = getCampaignFlowBadge(camp.status);
+                      return (
+                        <Chip
+                          label={badge.label}
+                          size="small"
+                          color={badge.color}
+                          sx={{
+                            bgcolor: badge.bg,
+                            color: badge.fg,
+                            fontWeight: 'bold',
+                            fontSize: '0.7rem',
+                          }}
+                        />
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <Chip 
