@@ -39,6 +39,7 @@ type AccountRow = {
   risk_reason?: string | null;
   daily_job_limit?: number | null;
   daily_job_count?: number | null;
+  quota_source?: string | null;
   last_checked_at?: string | null;
   last_error?: string | null;
 };
@@ -103,12 +104,7 @@ export default function SettingsPage() {
         const freshAccount = (patchResponse as { row?: AccountRow | null } | undefined)?.row || null;
         setSaveDebug({ patchResponse, freshRow: freshAccount });
         await refresh();
-        const freshQuota = Number(freshAccount?.daily_job_limit || 0);
-        if (freshQuota > 0) {
-          notify(`Đã cập nhật account. Loaded from backend quota: ${freshQuota}.`, 'success');
-        } else {
-          notify('Đã cập nhật account, nhưng quota backend vẫn chưa hợp lệ. Kiểm tra lại daily job limit hoặc refresh dữ liệu.', 'warning');
-        }
+        notify('Đã cập nhật account.', 'success');
       } else {
         const createResponse = await fetchApi('/api/accounts', {
           method: 'POST',
@@ -128,11 +124,7 @@ export default function SettingsPage() {
           (updatedAccounts || []).find((item) => item.name === trimmedName && (item.phone || '') === (form.phone || '')) ||
           null;
         setSaveDebug({ patchResponse: createResponse, freshRow: freshAccount });
-        if (Number(freshAccount?.daily_job_limit || 0) > 0) {
-          notify('Đã tạo account.', 'success');
-        } else {
-          notify('Đã tạo account, nhưng quota backend vẫn chưa hợp lệ.', 'warning');
-        }
+        notify('Đã tạo account.', 'success');
       }
       setSelectedAccount(null);
       setForm({ name: '', phone: '', api_id: '', api_hash: '', session_ref: '', daily_job_limit: 30 });
@@ -185,6 +177,17 @@ export default function SettingsPage() {
       await refresh();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Không thể pause account.', 'error');
+    }
+  };
+
+  const normalizeQuota = async (account: AccountRow) => {
+    try {
+      const res = await fetchApi(`/api/accounts/${account.id}/normalize-quota`, { method: 'POST' });
+      setSaveDebug({ patchResponse: res, freshRow: (res as { row?: AccountRow | null } | undefined)?.row || null });
+      notify('Đã normalize quota về 30.', 'success');
+      await refresh();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Không thể normalize quota.', 'error');
     }
   };
 
@@ -286,6 +289,13 @@ export default function SettingsPage() {
                                   color={getAccountBlockTone(reason)}
                                   variant={reason === 'Available' ? 'outlined' : 'filled'}
                                 />
+                                <Chip
+                                  size="small"
+                                  label={`quota: ${Number(account.daily_job_limit || 0) > 0 ? account.daily_job_limit : 30}`}
+                                  color={(account.quota_source || 'default') === 'backend' ? 'success' : 'warning'}
+                                  variant="outlined"
+                                  sx={{ ml: 1 }}
+                                />
                               </>
                             );
                           })()}
@@ -295,9 +305,7 @@ export default function SettingsPage() {
                             </Typography>
                           )}
                           <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, maxWidth: 240, display: 'block' }}>
-                            {Number(account.daily_job_limit || 0) > 0
-                              ? `Quota ${Number(account.daily_job_count || 0)} / ${Number(account.daily_job_limit || 0)}`
-                              : 'Quota not set'}
+                            {`Quota ${Number(account.daily_job_count || 0)} / ${Number(account.daily_job_limit || 30)}`}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -306,6 +314,7 @@ export default function SettingsPage() {
                         <TableCell align="right">
                           <Button size="small" onClick={() => loadAccountToForm(account)}>Edit</Button>
                           <Button size="small" startIcon={<ScienceIcon />} onClick={() => testAccount(account)}>Test</Button>
+                          <Button size="small" color="info" onClick={() => normalizeQuota(account)}>Normalize quota</Button>
                           {account.is_active ? (
                             <Button size="small" color="warning" startIcon={<PauseCircleIcon />} onClick={() => pauseAccount(account)}>Pause</Button>
                           ) : (
@@ -334,16 +343,11 @@ export default function SettingsPage() {
                 <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(148, 163, 184, 0.25)' }}>
                   <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
                     {selectedQuotaLoadedFromBackend
-                      ? `Loaded from backend: daily_job_limit = ${selectedBackendQuota}`
-                      : 'Loaded from backend: none, using default daily_job_limit = 30'}
-                  </Typography>
-                  <Typography variant="caption" sx={{ display: 'block', color: selectedQuotaValue > 0 ? 'success.light' : 'warning.light' }}>
-                    {selectedQuotaValue > 0
-                      ? `Current form value is valid: ${selectedQuotaValue}`
-                      : 'Current form value is invalid: quota not set'}
+                      ? `Quota source: backend (${selectedBackendQuota})`
+                      : 'Quota source: default 30'}
                   </Typography>
                   <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>
-                    Raw backend row quota: {String(selectedAccount?.daily_job_limit ?? 'null')}
+                    Effective quota: {selectedQuotaValue > 0 ? selectedQuotaValue : 30}
                   </Typography>
                 </Box>
               )}
@@ -365,7 +369,7 @@ export default function SettingsPage() {
                   type="number"
                   value={form.daily_job_limit}
                   onChange={e => setForm({ ...form, daily_job_limit: Number(e.target.value) })}
-                  helperText={selectedAccount ? `Backend ${selectedQuotaLoadedFromBackend ? 'loaded' : 'missing'} · current value ${selectedQuotaValue || 0}` : 'Default new account value = 30'}
+                  helperText={selectedAccount ? 'Optional override; backend will normalize to an effective quota.' : 'Default new account value = 30'}
                   fullWidth
                 />
                 {selectedAccount && (
@@ -377,7 +381,7 @@ export default function SettingsPage() {
                       Save debug: fresh quota = {String(saveDebug.freshRow?.daily_job_limit ?? 'null')}
                     </Typography>
                     <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                      Save debug: fresh status = {String(saveDebug.freshRow?.status ?? 'n/a')}
+                      Save debug: quota source = {String(saveDebug.freshRow?.quota_source ?? 'n/a')}
                     </Typography>
                   </Box>
                 )}

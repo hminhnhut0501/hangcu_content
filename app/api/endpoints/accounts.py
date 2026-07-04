@@ -6,6 +6,7 @@ from app.repositories.system_repo import (
     delete_account as repo_delete_account,
     get_account_by_id,
     list_accounts as repo_list_accounts,
+    normalize_account_quota as repo_normalize_account_quota,
     update_account as repo_update_account,
     resume_account as repo_resume_account,
 )
@@ -30,6 +31,12 @@ def create_account_api(payload: AccountCreate):
 @router.patch("/{account_id}")
 def update_account_api(account_id: str, payload: AccountUpdate):
     row = repo_update_account(account_id, payload.model_dump(exclude_none=True))
+    return {"ok": bool(row), "row": row}
+
+
+@router.post("/{account_id}/normalize-quota")
+def normalize_quota_api(account_id: str):
+    row = repo_normalize_account_quota(account_id, default_limit=30)
     return {"ok": bool(row), "row": row}
 
 

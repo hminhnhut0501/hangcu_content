@@ -16,6 +16,9 @@ def _normalize_account_row(row: dict[str, Any] | None):
     daily_limit = int(normalized.get("daily_job_limit") or 0)
     if daily_limit <= 0:
         normalized["daily_job_limit"] = 30
+        normalized["quota_source"] = "default"
+    else:
+        normalized["quota_source"] = "backend"
     daily_count = int(normalized.get("daily_job_count") or 0)
     if daily_count < 0:
         normalized["daily_job_count"] = 0
@@ -57,8 +60,24 @@ def update_account(account_id: str, payload: dict[str, Any]):
     try:
         normalized_payload = dict(payload)
         if "daily_job_limit" in normalized_payload and int(normalized_payload.get("daily_job_limit") or 0) <= 0:
-          normalized_payload["daily_job_limit"] = 30
+            normalized_payload["daily_job_limit"] = 30
         row = (_client().table("tg_accounts").update(normalized_payload).eq("id", account_id).execute().data or [None])[0]
+        return _normalize_account_row(row)
+    except Exception:
+        return None
+
+
+def normalize_account_quota(account_id: str, *, default_limit: int = 30):
+    try:
+        row = (
+            _client()
+            .table("tg_accounts")
+            .update({"daily_job_limit": default_limit})
+            .eq("id", account_id)
+            .execute()
+            .data
+            or [None]
+        )[0]
         return _normalize_account_row(row)
     except Exception:
         return None
