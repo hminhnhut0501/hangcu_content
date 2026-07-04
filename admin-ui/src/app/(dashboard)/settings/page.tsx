@@ -119,6 +119,7 @@ export default function SettingsPage() {
             api_hash: form.api_hash || null,
             session_ref: form.session_ref || null,
             is_active: false,
+            daily_job_limit: Number(form.daily_job_limit || 30),
           }),
         });
         setSaveDebug({ patchResponse: createResponse, freshRow: null });

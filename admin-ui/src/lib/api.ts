@@ -19,6 +19,14 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
       const data = await res.json();
       if (typeof data?.detail === 'string') {
         message = data.detail;
+      } else if (Array.isArray(data?.detail)) {
+        message = data.detail
+          .map((item: { loc?: unknown; msg?: unknown }) => {
+            const loc = Array.isArray(item?.loc) ? item.loc.join('.') : '';
+            const msg = typeof item?.msg === 'string' ? item.msg : 'validation error';
+            return loc ? `${loc}: ${msg}` : msg;
+          })
+          .join('; ');
       } else if (typeof data?.message === 'string') {
         message = data.message;
       }

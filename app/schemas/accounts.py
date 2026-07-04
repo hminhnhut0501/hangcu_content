@@ -8,6 +8,7 @@ class AccountCreate(BaseModel):
     phone: str | None = None
     session_ref: str | None = None
     is_active: bool = False
+    daily_job_limit: int | None = None
 
 
 class AccountUpdate(BaseModel):

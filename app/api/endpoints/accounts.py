@@ -23,7 +23,7 @@ def list_accounts():
 
 @router.post("", response_model=StatusResponse)
 def create_account_api(payload: AccountCreate):
-    row = repo_create_account(payload.model_dump())
+    row = repo_create_account(payload.model_dump(exclude_none=True))
     return {"ok": bool(row)}
 
 
