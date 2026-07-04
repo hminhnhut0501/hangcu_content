@@ -174,8 +174,7 @@ export default function SettingsPage() {
 
   const normalizeQuota = async (account: AccountRow) => {
     try {
-      const res = await fetchApi(`/api/accounts/${account.id}/normalize-quota`, { method: 'POST' });
-      setSaveDebug({ patchResponse: res, freshRow: (res as { row?: AccountRow | null } | undefined)?.row || null });
+      await fetchApi(`/api/accounts/${account.id}/normalize-quota`, { method: 'POST' });
       notify('Đã normalize quota về 30.', 'success');
       await refresh();
     } catch (err) {
