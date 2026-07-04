@@ -12,6 +12,6 @@ api_router.include_router(campaigns.router, prefix="/campaigns", tags=["campaign
 api_router.include_router(logs.router, prefix="/logs", tags=["logs"], dependencies=[Depends(require_user)])
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"], dependencies=[Depends(require_admin)])
 api_router.include_router(accounts.router, prefix="/accounts", tags=["accounts"], dependencies=[Depends(require_user)])
-api_router.include_router(internal.router, prefix="/internal", tags=["internal"], dependencies=[Depends(require_admin)])
+api_router.include_router(internal.router, prefix="/internal", tags=["internal"])
 api_router.include_router(runs.router, prefix="/runs", tags=["runs"], dependencies=[Depends(require_user)])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])

@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.services.scheduler_service import enqueue_due_work
 from app.repositories.content_repo import count_rows
 from app.repositories.system_repo import list_accounts, list_logs, list_settings, recent_jobs
+from app.core.auth import require_user, require_admin
 
 router = APIRouter()
 
@@ -74,16 +75,16 @@ def build_health_deep_snapshot() -> dict:
     return snapshot
 
 
-@router.post("/scheduler/tick")
+@router.post("/scheduler/tick", dependencies=[Depends(require_admin)])
 def scheduler_tick():
     return enqueue_due_work()
 
 
-@router.get("/health")
+@router.get("/health", dependencies=[Depends(require_user)])
 def health():
     return build_health_snapshot()
 
 
-@router.get("/health/deep")
+@router.get("/health/deep", dependencies=[Depends(require_admin)])
 def health_deep():
     return build_health_deep_snapshot()
