@@ -1,5 +1,3 @@
-create extension if not exists pgcrypto;
-
 do $$
 begin
   if exists (
@@ -18,50 +16,6 @@ begin
     drop table if exists content_groups cascade;
   end if;
 end $$;
-
-create table if not exists schema_migrations (
-  version text primary key,
-  applied_at timestamptz not null default now()
-);
-
-create table if not exists profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  full_name text,
-  role text not null default 'owner',
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists tg_accounts (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  api_id bigint,
-  api_hash text,
-  phone text,
-  session_ref text,
-  is_active boolean not null default false,
-  status text not null default 'unverified',
-  last_checked_at timestamptz,
-  last_error text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists channels (
-  id uuid primary key default gen_random_uuid(),
-  tg_chat_id text not null unique,
-  username text,
-  title text not null,
-  chat_type text not null default 'channel',
-  is_active boolean not null default true,
-  source_status text not null default 'unchecked',
-  can_forward boolean not null default true,
-  noforwards boolean not null default false,
-  is_admin boolean not null default false,
-  checked_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
 
 create table if not exists content_groups (
   id uuid primary key default gen_random_uuid(),
@@ -157,6 +111,8 @@ create table if not exists queue_jobs (
   max_attempts int not null default 3,
   locked_by text,
   locked_at timestamptz,
+  lock_expires_at timestamptz,
+  next_retry_at timestamptz,
   last_error text,
   payload jsonb,
   result jsonb,
@@ -175,26 +131,3 @@ create table if not exists content_events (
   payload jsonb,
   created_at timestamptz not null default now()
 );
-
-create table if not exists settings (
-  key text primary key,
-  value jsonb not null,
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists audit_logs (
-  id bigserial primary key,
-  actor_id uuid references auth.users(id),
-  action text not null,
-  entity_type text not null,
-  entity_id text,
-  metadata jsonb,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists idx_content_groups_status_created_at on content_groups(status, created_at desc);
-create index if not exists idx_content_topics_group_sort on content_topics(group_id, sort_order, created_at desc);
-create index if not exists idx_content_campaigns_topic_enabled_next_run on content_campaigns(topic_id, enabled, next_run_at);
-create index if not exists idx_queue_jobs_status_scheduled_priority on queue_jobs(status, scheduled_at, priority);
-create index if not exists idx_content_events_group_created_at on content_events(group_id, created_at desc);
-create index if not exists idx_content_events_campaign_created_at on content_events(campaign_id, created_at desc);

@@ -9,7 +9,7 @@ as $$
   );
 $$;
 
-create or replace function public.is_app_role(var_args text[])
+create or replace function public.is_app_role(variadic var_args text[])
 returns boolean
 language sql
 stable
@@ -97,4 +97,3 @@ create policy "tg_accounts_write" on tg_accounts
 drop policy if exists "audit_logs_read" on audit_logs;
 create policy "audit_logs_read" on audit_logs
   for select using (public.is_app_role('owner', 'admin'));
-

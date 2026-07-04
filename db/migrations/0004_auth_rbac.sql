@@ -6,7 +6,10 @@ begin
 end $$;
 
 alter table if exists profiles
-  alter column role type app_role using role::app_role;
+  alter column role drop default;
+
+alter table if exists profiles
+  alter column role type app_role using role::text::app_role;
 
 alter table if exists profiles
   alter column role set default 'viewer';
@@ -54,4 +57,3 @@ create policy "profiles_admin_all" on profiles
       where p.id = auth.uid() and p.role in ('owner', 'admin')
     )
   );
-
