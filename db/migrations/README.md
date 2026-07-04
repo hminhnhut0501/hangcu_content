@@ -13,3 +13,4 @@ Order:
 7. `0007_fix_content_uuid_schema.sql`
 8. `0008_anti_ban_guard.sql`
 9. `0009_phase9_cleanup.sql`
+10. `0010_fix_profiles_rls.sql`
