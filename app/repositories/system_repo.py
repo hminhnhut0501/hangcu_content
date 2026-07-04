@@ -9,6 +9,11 @@ def _client():
     return get_supabase_client()
 
 
+def _refetch_account(account_id: str):
+    rows = _client().table("tg_accounts").select("*").eq("id", account_id).limit(1).execute().data or []
+    return _normalize_account_row(rows[0]) if rows else None
+
+
 def _normalize_account_row(row: dict[str, Any] | None):
     if not row:
         return row
@@ -50,8 +55,9 @@ def create_account(payload: dict[str, Any]):
         normalized_payload = dict(payload)
         if int(normalized_payload.get("daily_job_limit") or 0) <= 0:
             normalized_payload["daily_job_limit"] = 30
-        row = (_client().table("tg_accounts").insert(normalized_payload).execute().data or [None])[0]
-        return _normalize_account_row(row)
+        inserted = _client().table("tg_accounts").insert(normalized_payload).execute().data or []
+        row = inserted[0] if inserted else None
+        return _refetch_account(row["id"]) if row and row.get("id") else _normalize_account_row(row)
     except Exception:
         return None
 
@@ -61,24 +67,16 @@ def update_account(account_id: str, payload: dict[str, Any]):
         normalized_payload = dict(payload)
         if "daily_job_limit" in normalized_payload and int(normalized_payload.get("daily_job_limit") or 0) <= 0:
             normalized_payload["daily_job_limit"] = 30
-        row = (_client().table("tg_accounts").update(normalized_payload).eq("id", account_id).execute().data or [None])[0]
-        return _normalize_account_row(row)
+        _client().table("tg_accounts").update(normalized_payload).eq("id", account_id).execute()
+        return _refetch_account(account_id)
     except Exception:
         return None
 
 
 def normalize_account_quota(account_id: str, *, default_limit: int = 30):
     try:
-        row = (
-            _client()
-            .table("tg_accounts")
-            .update({"daily_job_limit": default_limit})
-            .eq("id", account_id)
-            .execute()
-            .data
-            or [None]
-        )[0]
-        return _normalize_account_row(row)
+        _client().table("tg_accounts").update({"daily_job_limit": default_limit}).eq("id", account_id).execute()
+        return _refetch_account(account_id)
     except Exception:
         return None
 
@@ -93,13 +91,13 @@ def delete_account(account_id: str):
 
 def resume_account(account_id: str):
     try:
-        row = (_client().table("tg_accounts").update({
+        _client().table("tg_accounts").update({
             "is_active": True,
             "risk_status": "active",
             "risk_reason": "",
             "last_error": "",
-        }).eq("id", account_id).execute().data or [None])[0]
-        return _normalize_account_row(row)
+        }).eq("id", account_id).execute()
+        return _refetch_account(account_id)
     except Exception:
         return None
 
