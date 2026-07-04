@@ -51,16 +51,63 @@ type TopicRow = {
   name: string;
 };
 
-type CampaignStatusTone = 'default' | 'error' | 'info' | 'success' | 'warning';
+type RunRow = {
+  id: string;
+  status?: string | null;
+  last_error?: string | null;
+  created_at?: string | null;
+};
 
-function getCampaignFlowBadge(status?: string | null): { label: string; color: CampaignStatusTone; bg: string; fg: string } {
-  const value = String(status || '').toLowerCase();
-  if (value === 'queued') return { label: 'Queued', color: 'warning', bg: '#fef3c7', fg: '#92400e' };
-  if (value === 'running') return { label: 'Running', color: 'info', bg: '#dbeafe', fg: '#1d4ed8' };
-  if (value === 'done' || value === 'sent') return { label: 'Sent', color: 'success', bg: '#dcfce7', fg: '#166534' };
-  if (value === 'failed') return { label: 'Failed', color: 'error', bg: '#fee2e2', fg: '#991b1b' };
-  if (value === 'scheduled') return { label: 'Waiting worker', color: 'warning', bg: '#fef3c7', fg: '#92400e' };
-  return { label: 'Waiting worker', color: 'default', bg: '#f1f5f9', fg: '#475569' };
+type JobRow = {
+  id: string;
+  status?: string | null;
+  last_error?: string | null;
+  created_at?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+};
+
+function CampaignFlowState({ campaignId, campaignStatus }: { campaignId: string; campaignStatus?: string | null }) {
+  const { data: runs } = useSWR<RunRow[]>(`/api/runs/campaigns/${campaignId}?limit=3`, fetcher);
+  const { data: jobs } = useSWR<JobRow[]>(`/api/runs/jobs?campaign_id=${campaignId}&limit=3`, fetcher);
+  const latestRun = runs?.[0];
+  const latestJob = jobs?.[0];
+  const runStatus = String(latestRun?.status || '').toLowerCase();
+  const jobStatus = String(latestJob?.status || '').toLowerCase();
+
+  const flow = React.useMemo(() => {
+    if (runStatus === 'failed' || jobStatus === 'failed') {
+      return { label: 'Failed', color: 'error' as const, note: latestRun?.last_error || latestJob?.last_error || 'Job failed' };
+    }
+    if (jobStatus === 'running' || runStatus === 'running') {
+      return { label: 'Running', color: 'info' as const, note: 'Worker đang xử lý job này' };
+    }
+    if (jobStatus === 'pending' && campaignStatus === 'queued') {
+      return { label: 'Waiting worker', color: 'warning' as const, note: 'Đã queue, đang chờ worker claim job' };
+    }
+    if (runStatus === 'success' || jobStatus === 'success') {
+      return { label: 'Sent', color: 'success' as const, note: 'Đã gửi xong' };
+    }
+    if (campaignStatus === 'queued' || campaignStatus === 'scheduled') {
+      return { label: 'Queued', color: 'warning' as const, note: 'Đã vào queue, chờ worker hoặc scheduler' };
+    }
+    return { label: 'Waiting worker', color: 'default' as const, note: 'Chưa có job rõ ràng' };
+  }, [campaignStatus, jobStatus, latestJob?.last_error, latestRun?.last_error, runStatus]);
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+      <Chip
+        label={flow.label}
+        size="small"
+        color={flow.color}
+        variant={flow.label === 'Waiting worker' ? 'outlined' : 'filled'}
+        sx={{ width: 'fit-content', fontSize: '0.7rem', fontWeight: 'bold' }}
+      />
+      <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260, display: 'block' }}>
+        {flow.note}
+      </Typography>
+    </Box>
+  );
 }
 
 export default function CampaignsPage() {
@@ -319,22 +366,7 @@ export default function CampaignsPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {(() => {
-                      const badge = getCampaignFlowBadge(camp.status);
-                      return (
-                        <Chip
-                          label={badge.label}
-                          size="small"
-                          color={badge.color}
-                          sx={{
-                            bgcolor: badge.bg,
-                            color: badge.fg,
-                            fontWeight: 'bold',
-                            fontSize: '0.7rem',
-                          }}
-                        />
-                      );
-                    })()}
+                    <CampaignFlowState campaignId={camp.id} campaignStatus={camp.status} />
                   </TableCell>
                   <TableCell>
                     <Chip 
