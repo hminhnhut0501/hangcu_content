@@ -100,9 +100,9 @@ export default function SettingsPage() {
             daily_job_limit: Number(form.daily_job_limit || 30),
           }),
         });
-        const updatedAccounts = await refresh();
-        const freshAccount = (updatedAccounts || []).find((item) => item.id === selectedAccount.id);
-        setSaveDebug({ patchResponse, freshRow: freshAccount || null });
+        const freshAccount = (patchResponse as { row?: AccountRow | null } | undefined)?.row || null;
+        setSaveDebug({ patchResponse, freshRow: freshAccount });
+        await refresh();
         const freshQuota = Number(freshAccount?.daily_job_limit || 0);
         if (freshQuota > 0) {
           notify(`Đã cập nhật account. Loaded from backend quota: ${freshQuota}.`, 'success');
@@ -122,8 +122,13 @@ export default function SettingsPage() {
             daily_job_limit: Number(form.daily_job_limit || 30),
           }),
         });
-        setSaveDebug({ patchResponse: createResponse, freshRow: null });
-        notify('Đã tạo account.', 'success');
+        const freshAccount = (createResponse as { row?: AccountRow | null } | undefined)?.row || null;
+        setSaveDebug({ patchResponse: createResponse, freshRow: freshAccount });
+        if (Number(freshAccount?.daily_job_limit || 0) > 0) {
+          notify('Đã tạo account.', 'success');
+        } else {
+          notify('Đã tạo account, nhưng quota backend vẫn chưa hợp lệ.', 'warning');
+        }
       }
       setSelectedAccount(null);
       setForm({ name: '', phone: '', api_id: '', api_hash: '', session_ref: '', daily_job_limit: 30 });

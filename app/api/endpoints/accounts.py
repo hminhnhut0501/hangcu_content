@@ -21,16 +21,16 @@ def list_accounts():
     return repo_list_accounts()
 
 
-@router.post("", response_model=StatusResponse)
+@router.post("")
 def create_account_api(payload: AccountCreate):
     row = repo_create_account(payload.model_dump(exclude_none=True))
-    return {"ok": bool(row)}
+    return {"ok": bool(row), "row": row}
 
 
-@router.patch("/{account_id}", response_model=StatusResponse)
+@router.patch("/{account_id}")
 def update_account_api(account_id: str, payload: AccountUpdate):
     row = repo_update_account(account_id, payload.model_dump(exclude_none=True))
-    return {"ok": bool(row)}
+    return {"ok": bool(row), "row": row}
 
 
 @router.delete("/{account_id}", response_model=StatusResponse)
