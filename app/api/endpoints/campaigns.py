@@ -57,7 +57,7 @@ def run_campaign(campaign_id: str):
         },
     )
     if not run or not run.get("id"):
-        raise HTTPException(status_code=503, detail="queue_unavailable")
+        raise HTTPException(status_code=503, detail="campaign_run_insert_failed")
     row = insert_row(
         "queue_jobs",
         {
@@ -72,7 +72,7 @@ def run_campaign(campaign_id: str):
         },
     )
     if not row or not row.get("id"):
-        raise HTTPException(status_code=503, detail="queue_unavailable")
+        raise HTTPException(status_code=503, detail="queue_job_insert_failed")
     update_row("content_campaigns", campaign_id, {"status": "queued", "last_run_at": now_iso()})
     create_event("info", "campaign_queued", "Campaign queued for run", {"job_id": row["id"], "run_id": run["id"]}, campaign_id=campaign_id)
     return {"id": row["id"]}
