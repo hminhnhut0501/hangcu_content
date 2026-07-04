@@ -70,7 +70,7 @@ def login(payload: LoginPayload, response: Response):
             cookie_value,
             httponly=True,
             secure=settings.app_env == "production",
-            samesite="lax",
+            samesite="none" if settings.app_env == "production" else "lax",
             max_age=60 * 60 * 24 * 14,
             path="/",
         )

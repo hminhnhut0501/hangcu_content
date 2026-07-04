@@ -37,6 +37,7 @@ Optional:
 - `TG_API_ID`
 - `TG_API_HASH`
 - `TG_STRING_SESSION`
+- `ALLOWED_ORIGINS`
 
 ## Deploy Checklist
 
@@ -72,6 +73,7 @@ Optional:
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `SUPABASE_DB_URL`
    - `ADMIN_UI_URL` nếu admin-ui deploy tách riêng
+   - `ALLOWED_ORIGINS` nếu cần override CORS, ví dụ `https://your-admin-ui.vercel.app`
    - `BOOTSTRAP_OWNER_EMAIL` if needed
    - `BOOTSTRAP_OWNER_PASSWORD` if needed
 4. Deploy and confirm `/` loads.

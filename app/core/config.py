@@ -13,6 +13,7 @@ class Settings:
     bootstrap_owner_email: str = os.getenv("BOOTSTRAP_OWNER_EMAIL", "")
     bootstrap_owner_password: str = os.getenv("BOOTSTRAP_OWNER_PASSWORD", "")
     admin_ui_url: str = os.getenv("ADMIN_UI_URL", "").rstrip("/")
+    allowed_origins: str = os.getenv("ALLOWED_ORIGINS", "")
 
 
 settings = Settings()

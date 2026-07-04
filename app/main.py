@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -14,6 +15,22 @@ from app.repositories.system_repo import insert_audit_log
 app = FastAPI(title=settings.app_name)
 app.include_router(api_router)
 templates = Jinja2Templates(directory="templates")
+
+allowed_origins = [
+    origin.strip()
+    for origin in (
+        settings.allowed_origins
+        or ",".join(filter(None, [settings.admin_ui_url, "http://localhost:3000", "http://127.0.0.1:3000"]))
+    ).split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -41,6 +41,7 @@ Làm đúng theo thứ tự dưới đây.
    - `APP_ENV=production`
    - `APP_TIMEZONE=Asia/Ho_Chi_Minh`
    - `ADMIN_UI_URL` trỏ tới URL Render của admin-ui
+   - `ALLOWED_ORIGINS` nếu admin-ui ở domain khác, ví dụ `https://your-admin-ui.vercel.app`
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `SUPABASE_DB_URL`
