@@ -9,9 +9,27 @@ def _client():
     return get_supabase_client()
 
 
+def _normalize_account_row(row: dict[str, Any] | None):
+    if not row:
+        return row
+    normalized = dict(row)
+    daily_limit = int(normalized.get("daily_job_limit") or 0)
+    if daily_limit <= 0:
+        normalized["daily_job_limit"] = 30
+    daily_count = int(normalized.get("daily_job_count") or 0)
+    if daily_count < 0:
+        normalized["daily_job_count"] = 0
+    if not normalized.get("risk_status"):
+        normalized["risk_status"] = "active"
+    if normalized.get("is_active") is None:
+        normalized["is_active"] = False
+    return normalized
+
+
 def list_accounts():
     try:
-        return _client().table("tg_accounts").select("*").order("created_at", desc=True).execute().data or []
+        rows = _client().table("tg_accounts").select("*").order("created_at", desc=True).execute().data or []
+        return [_normalize_account_row(row) for row in rows]
     except Exception:
         return []
 
@@ -19,21 +37,29 @@ def list_accounts():
 def get_account_by_id(account_id: str):
     try:
         rows = _client().table("tg_accounts").select("*").eq("id", account_id).limit(1).execute().data or []
-        return rows[0] if rows else None
+        return _normalize_account_row(rows[0]) if rows else None
     except Exception:
         return None
 
 
 def create_account(payload: dict[str, Any]):
     try:
-        return (_client().table("tg_accounts").insert(payload).execute().data or [None])[0]
+        normalized_payload = dict(payload)
+        if int(normalized_payload.get("daily_job_limit") or 0) <= 0:
+            normalized_payload["daily_job_limit"] = 30
+        row = (_client().table("tg_accounts").insert(normalized_payload).execute().data or [None])[0]
+        return _normalize_account_row(row)
     except Exception:
         return None
 
 
 def update_account(account_id: str, payload: dict[str, Any]):
     try:
-        return (_client().table("tg_accounts").update(payload).eq("id", account_id).execute().data or [None])[0]
+        normalized_payload = dict(payload)
+        if "daily_job_limit" in normalized_payload and int(normalized_payload.get("daily_job_limit") or 0) <= 0:
+          normalized_payload["daily_job_limit"] = 30
+        row = (_client().table("tg_accounts").update(normalized_payload).eq("id", account_id).execute().data or [None])[0]
+        return _normalize_account_row(row)
     except Exception:
         return None
 
@@ -48,12 +74,13 @@ def delete_account(account_id: str):
 
 def resume_account(account_id: str):
     try:
-        return (_client().table("tg_accounts").update({
+        row = (_client().table("tg_accounts").update({
             "is_active": True,
             "risk_status": "active",
             "risk_reason": "",
             "last_error": "",
         }).eq("id", account_id).execute().data or [None])[0]
+        return _normalize_account_row(row)
     except Exception:
         return None
 
