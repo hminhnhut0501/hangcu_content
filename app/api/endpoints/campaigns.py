@@ -45,45 +45,69 @@ def run_campaign(campaign_id: str):
     campaign = get_row("content_campaigns", campaign_id)
     if not campaign:
         raise HTTPException(status_code=404, detail="campaign_not_found")
-    run = insert_row(
-        "campaign_runs",
-        {
-            "campaign_id": campaign_id,
-            "slot_key": f"manual:{now_iso()}",
-            "scheduled_at": now_iso(),
-            "status": "queued",
-            "queued_items": 1,
-            "selected_topic_ids": [campaign.get("topic_id")],
-        },
-    )
+    try:
+        run = insert_row(
+            "campaign_runs",
+            {
+                "campaign_id": campaign_id,
+                "slot_key": f"manual:{now_iso()}",
+                "scheduled_at": now_iso(),
+                "status": "queued",
+                "queued_items": 1,
+                "selected_topic_ids": [campaign.get("topic_id")],
+            },
+            raise_error=True,
+        )
+    except Exception as exc:
+        detail = f"campaign_run_insert_failed: {exc}"
+        create_event(
+            "error",
+            "campaign_run_insert_failed",
+            "Campaign run insert failed",
+            {"campaign_id": campaign_id, "error": str(exc)},
+            campaign_id=campaign_id,
+        )
+        raise HTTPException(status_code=503, detail=detail) from exc
     if not run or not run.get("id"):
         create_event(
             "error",
             "campaign_run_insert_failed",
             "Campaign run insert failed",
-            {"campaign_id": campaign_id},
+            {"campaign_id": campaign_id, "error": "no_row_returned"},
             campaign_id=campaign_id,
         )
         raise HTTPException(status_code=503, detail="campaign_run_insert_failed")
-    row = insert_row(
-        "queue_jobs",
-        {
-            "job_type": "run_campaign",
-            "campaign_id": campaign_id,
-            "group_id": campaign.get("group_id"),
-            "topic_id": campaign.get("topic_id"),
-            "account_id": (pick_account_for_job() or {}).get("id"),
-            "status": "pending",
-            "priority": 100,
-            "payload": {"campaign_id": campaign_id, "campaign_run_id": run["id"]},
-        },
-    )
+    try:
+        row = insert_row(
+            "queue_jobs",
+            {
+                "job_type": "run_campaign",
+                "campaign_id": campaign_id,
+                "group_id": campaign.get("group_id"),
+                "topic_id": campaign.get("topic_id"),
+                "account_id": (pick_account_for_job() or {}).get("id"),
+                "status": "pending",
+                "priority": 100,
+                "payload": {"campaign_id": campaign_id, "campaign_run_id": run["id"]},
+            },
+            raise_error=True,
+        )
+    except Exception as exc:
+        detail = f"queue_job_insert_failed: {exc}"
+        create_event(
+            "error",
+            "queue_job_insert_failed",
+            "Queue job insert failed",
+            {"campaign_id": campaign_id, "campaign_run_id": run["id"], "error": str(exc)},
+            campaign_id=campaign_id,
+        )
+        raise HTTPException(status_code=503, detail=detail) from exc
     if not row or not row.get("id"):
         create_event(
             "error",
             "queue_job_insert_failed",
             "Queue job insert failed",
-            {"campaign_id": campaign_id, "campaign_run_id": run["id"]},
+            {"campaign_id": campaign_id, "campaign_run_id": run["id"], "error": "no_row_returned"},
             campaign_id=campaign_id,
         )
         raise HTTPException(status_code=503, detail="queue_job_insert_failed")

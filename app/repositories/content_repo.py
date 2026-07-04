@@ -66,10 +66,12 @@ def get_row(table: str, row_id: str, *, select: str = "*"):
         return None
 
 
-def insert_row(table: str, payload: dict[str, Any]):
+def insert_row(table: str, payload: dict[str, Any], *, raise_error: bool = False):
     try:
         return (_client().table(table).insert(payload).execute().data or [None])[0]
-    except Exception:
+    except Exception as exc:
+        if raise_error:
+            raise
         return None
 
 
