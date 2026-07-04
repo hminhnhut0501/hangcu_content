@@ -1,4 +1,4 @@
-export const API_BASE_URL = '';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, '') || '';
 
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {

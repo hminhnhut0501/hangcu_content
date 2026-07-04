@@ -106,22 +106,23 @@ export default function Login() {
               >
                 {loading ? 'Đang xử lý...' : 'Đăng nhập'}
               </Button>
-              <Button 
-                variant="outlined" 
-                size="large" 
-                fullWidth 
-                onClick={() => {
-                  // Fake login for UI/UX testing
-                  localStorage.setItem('dev_bypass', 'true');
-                  mutate();
-                  router.push('/');
-                }}
-                sx={{ 
-                  py: 1.5,
-                }}
-              >
-                Bỏ qua Đăng nhập (Chế độ Dev)
-              </Button>
+              {process.env.NODE_ENV === 'development' && (
+                <Button 
+                  variant="outlined" 
+                  size="large" 
+                  fullWidth 
+                  onClick={() => {
+                    localStorage.setItem('dev_bypass', 'true');
+                    mutate();
+                    router.push('/');
+                  }}
+                  sx={{ 
+                    py: 1.5,
+                  }}
+                >
+                  Bỏ qua Đăng nhập (Chế độ Dev)
+                </Button>
+              )}
             </Box>
           </form>
         </CardContent>

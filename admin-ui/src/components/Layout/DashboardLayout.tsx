@@ -15,6 +15,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Button from '@mui/material/Button';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -74,6 +75,7 @@ const NAVIGATION = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = React.useState(true);
   const pathname = usePathname();
+  const router = useRouter();
 
   const handleDrawerToggle = () => {
     setOpen(!open);
@@ -106,14 +108,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Button 
               variant="outlined" 
               size="small" 
+              onClick={() => router.refresh()}
               sx={{ borderRadius: 4, textTransform: 'none', px: 2, color: 'text.secondary', borderColor: 'divider', '&:hover': { bgcolor: '#f1f5f9' } }}
             >
-              Tra cứu...
+              Làm mới
             </Button>
             <Button 
               variant="contained" 
               size="small" 
               disableElevation
+              onClick={() => router.push('/campaigns')}
               sx={{ borderRadius: 4, textTransform: 'none', px: 2, fontWeight: 'bold' }}
             >
               + Tạo chiến dịch
