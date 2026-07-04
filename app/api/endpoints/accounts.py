@@ -6,6 +6,7 @@ from app.repositories.system_repo import (
     delete_account as repo_delete_account,
     get_account_by_id,
     list_accounts as repo_list_accounts,
+    resume_account as repo_resume_account,
     update_account as repo_update_account,
 )
 from app.schemas.accounts import AccountCreate, AccountUpdate
@@ -51,3 +52,17 @@ async def test_account_api(account_id: str):
         {"account_id": account_id, **result},
     )
     return result
+
+
+@router.post("/{account_id}/resume", response_model=StatusResponse)
+def resume_account_api(account_id: str):
+    row = repo_resume_account(account_id)
+    if not row:
+        return {"ok": False}
+    create_event(
+        "info",
+        "account_resumed",
+        "Telegram account resumed manually",
+        {"account_id": account_id},
+    )
+    return {"ok": True}

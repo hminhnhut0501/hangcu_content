@@ -379,16 +379,28 @@
           <h3 class="font-bold text-lg mb-4">Accounts</h3>
           <div class="space-y-3">
             <template x-for="a in accounts" :key="a.id">
-              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+              <div class="rounded-2xl border p-4" :class="accountCardClass(a)">
                 <div class="flex items-center justify-between gap-3">
                   <div>
-                    <div class="font-semibold" x-text="a.name"></div>
-                    <div class="text-xs text-slate-500" x-text="a.status || 'unverified'"></div>
+                    <div class="flex items-center gap-2">
+                      <div class="font-semibold" x-text="a.name"></div>
+                      <span class="px-2 py-0.5 rounded-full text-[11px] font-bold" :class="accountBadgeClass(a)" x-text="accountBadgeText(a)"></span>
+                    </div>
+                    <div class="text-xs text-slate-500 mt-1" x-text="a.status || 'unverified'"></div>
                     <div class="text-[11px] text-slate-600 mt-1" x-text="a.last_checked_at || 'never checked'"></div>
+                    <div class="text-[11px] text-slate-500 mt-1">
+                      Quota:
+                      <span class="font-semibold" x-text="accountQuotaLabel(a)"></span>
+                    </div>
+                    <div class="text-[11px] text-slate-500 mt-1" x-show="a.risk_reason">
+                      Risk:
+                      <span class="text-rose-300" x-text="a.risk_reason"></span>
+                    </div>
                   </div>
                   <div class="flex gap-2">
                     <button @click="testAccount(a)" class="px-3 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 text-xs">Test</button>
                     <button @click="toggleAccountActive(a)" class="px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs">Toggle</button>
+                    <button x-show="accountCanResume(a)" @click="resumeAccount(a)" class="px-3 py-2 rounded-lg bg-amber-500/20 text-amber-300 text-xs">Resume</button>
                     <button @click="confirmDelete('account', a.id, a.name)" class="px-3 py-2 rounded-lg bg-rose-500/20 text-rose-300 text-xs">Delete</button>
                   </div>
                 </div>
@@ -707,6 +719,29 @@
         ],
         activeNav: 'bg-cyan-500 text-slate-950 font-semibold',
         inactiveNav: 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800',
+        accountBadgeText(a) {
+          if ((a.risk_status || 'active') !== 'active') return 'PAUSED';
+          if (!a.is_active) return 'OFF';
+          return 'OK';
+        },
+        accountBadgeClass(a) {
+          if ((a.risk_status || 'active') !== 'active') return 'bg-rose-500/15 text-rose-300 border border-rose-500/20';
+          if (!a.is_active) return 'bg-slate-500/15 text-slate-300 border border-slate-500/20';
+          return 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20';
+        },
+        accountCardClass(a) {
+          if ((a.risk_status || 'active') !== 'active') return 'bg-rose-500/5 border-rose-500/20';
+          if (!a.is_active) return 'bg-slate-950/70 border-slate-800';
+          return 'bg-slate-950/70 border-emerald-500/20';
+        },
+        accountQuotaLabel(a) {
+          const used = Number(a.daily_job_count || 0);
+          const limit = Number(a.daily_job_limit || 0);
+          return limit ? `${used}/${limit}` : `${used}/∞`;
+        },
+        accountCanResume(a) {
+          return (a.risk_status || 'active') !== 'active' || !a.is_active;
+        },
         async init() {
           if (this.authenticated) {
             await this.refreshAll();
@@ -986,6 +1021,16 @@
             await this.loadAccounts();
           } else {
             this.notify('error', 'Update failed', 'Không thể cập nhật account.');
+          }
+        },
+        async resumeAccount(a) {
+          const res = await this.apiFetch('/api/accounts/' + a.id + '/resume', {method:'POST'});
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ok) {
+            this.notify('success', 'Account resumed', 'Đã bật lại account.');
+            await this.loadAccounts();
+          } else {
+            this.notify('error', 'Resume failed', data.detail || 'Không thể resume account.');
           }
         },
         async testAccount(a) {

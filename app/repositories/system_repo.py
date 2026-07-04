@@ -31,6 +31,15 @@ def delete_account(account_id: str):
     return True
 
 
+def resume_account(account_id: str):
+    return (_client().table("tg_accounts").update({
+        "is_active": True,
+        "risk_status": "active",
+        "risk_reason": "",
+        "last_error": "",
+    }).eq("id", account_id).execute().data or [None])[0]
+
+
 def list_settings():
     return _client().table("settings").select("*").order("key").execute().data or []
 
