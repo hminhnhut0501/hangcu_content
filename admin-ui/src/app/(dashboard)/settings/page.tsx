@@ -81,7 +81,7 @@ export default function SettingsPage() {
   };
 
   const refresh = async () => {
-    await mutate();
+    return await mutate();
   };
 
   const createOrUpdateAccount = async () => {
@@ -99,7 +99,14 @@ export default function SettingsPage() {
             daily_job_limit: Number(form.daily_job_limit || 30),
           }),
         });
-        notify('Đã cập nhật account.', 'success');
+        const updatedAccounts = await refresh();
+        const freshAccount = (updatedAccounts || []).find((item) => item.id === selectedAccount.id);
+        const freshQuota = Number(freshAccount?.daily_job_limit || 0);
+        if (freshQuota > 0) {
+          notify(`Đã cập nhật account. Loaded from backend quota: ${freshQuota}.`, 'success');
+        } else {
+          notify('Đã cập nhật account, nhưng quota backend vẫn chưa hợp lệ. Kiểm tra lại daily job limit hoặc refresh dữ liệu.', 'warning');
+        }
       } else {
         await fetchApi('/api/accounts', {
           method: 'POST',
@@ -116,7 +123,6 @@ export default function SettingsPage() {
       }
       setSelectedAccount(null);
       setForm({ name: '', phone: '', api_id: '', api_hash: '', session_ref: '', daily_job_limit: 30 });
-      await refresh();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Không thể lưu account.', 'error');
     }
@@ -129,14 +135,14 @@ export default function SettingsPage() {
       return;
     }
     setSelectedAccount(account);
-    setForm({
-      name: account.name || '',
-      phone: account.phone || '',
-      api_id: account.api_id ? String(account.api_id) : '',
-      api_hash: account.api_hash || '',
-      session_ref: account.session_ref || '',
-      daily_job_limit: Number(account.daily_job_limit || 30),
-    });
+      setForm({
+        name: account.name || '',
+        phone: account.phone || '',
+        api_id: account.api_id ? String(account.api_id) : '',
+        api_hash: account.api_hash || '',
+        session_ref: account.session_ref || '',
+        daily_job_limit: Number(account.daily_job_limit ?? 30),
+      });
   };
 
   const testAccount = async (account: AccountRow) => {
@@ -189,6 +195,10 @@ export default function SettingsPage() {
     if (reason === 'Quota reached') return 'warning';
     return 'error';
   };
+
+  const selectedBackendQuota = selectedAccount?.daily_job_limit;
+  const selectedQuotaLoadedFromBackend = selectedAccount ? selectedBackendQuota !== null && selectedBackendQuota !== undefined : false;
+  const selectedQuotaValue = Number(form.daily_job_limit || 0);
 
   return (
     <Box>
@@ -305,13 +315,34 @@ export default function SettingsPage() {
               <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
                 {selectedAccount ? `Edit: ${selectedAccount.name}` : 'Add Telegram account'}
               </Typography>
+              {selectedAccount && (
+                <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(148, 163, 184, 0.25)' }}>
+                  <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                    {selectedQuotaLoadedFromBackend
+                      ? `Loaded from backend: daily_job_limit = ${selectedBackendQuota}`
+                      : 'Loaded from backend: none, using default daily_job_limit = 30'}
+                  </Typography>
+                  <Typography variant="caption" sx={{ display: 'block', color: selectedQuotaValue > 0 ? 'success.light' : 'warning.light' }}>
+                    {selectedQuotaValue > 0
+                      ? `Current form value is valid: ${selectedQuotaValue}`
+                      : 'Current form value is invalid: quota not set'}
+                  </Typography>
+                </Box>
+              )}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <TextField label="Tên hiển thị" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} fullWidth />
                 <TextField label="Phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} fullWidth />
                 <TextField label="API ID" value={form.api_id} onChange={e => setForm({ ...form, api_id: e.target.value })} fullWidth />
                 <TextField label="API HASH" value={form.api_hash} onChange={e => setForm({ ...form, api_hash: e.target.value })} fullWidth />
                 <TextField label="Session String" value={form.session_ref} onChange={e => setForm({ ...form, session_ref: e.target.value })} fullWidth multiline minRows={3} />
-                <TextField label="Daily job limit" type="number" value={form.daily_job_limit} onChange={e => setForm({ ...form, daily_job_limit: Number(e.target.value) })} fullWidth />
+                <TextField
+                  label="Daily job limit"
+                  type="number"
+                  value={form.daily_job_limit}
+                  onChange={e => setForm({ ...form, daily_job_limit: Number(e.target.value) })}
+                  helperText={selectedAccount ? `Backend ${selectedQuotaLoadedFromBackend ? 'loaded' : 'missing'} · current value ${selectedQuotaValue || 0}` : 'Default new account value = 30'}
+                  fullWidth
+                />
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Button variant="contained" startIcon={<SaveIcon />} onClick={createOrUpdateAccount}>
                     {selectedAccount ? 'Save changes' : 'Create account'}
