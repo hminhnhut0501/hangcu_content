@@ -60,17 +60,20 @@ def _safe_string(value: Any) -> str | None:
 
 
 def _fetch_profile(user_id: str) -> dict[str, Any] | None:
-    rows = (
-        _client()
-        .table("profiles")
-        .select("*")
-        .eq("id", user_id)
-        .limit(1)
-        .execute()
-        .data
-        or []
-    )
-    return rows[0] if rows else None
+    try:
+        rows = (
+            _client()
+            .table("profiles")
+            .select("*")
+            .eq("id", user_id)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+        return rows[0] if rows else None
+    except Exception:
+        return None
 
 
 def _ensure_profile(user_id: str, email: str | None = None, full_name: str | None = None) -> dict[str, Any]:
@@ -78,7 +81,10 @@ def _ensure_profile(user_id: str, email: str | None = None, full_name: str | Non
     if profile:
         return profile
     payload = {"id": user_id, "full_name": full_name or email or "User", "role": "viewer"}
-    return (_client().table("profiles").upsert(payload).execute().data or [payload])[0]
+    try:
+        return (_client().table("profiles").upsert(payload).execute().data or [payload])[0]
+    except Exception:
+        return payload
 
 
 def _resolve_user_from_session(session: dict[str, Any] | None) -> AuthUser | None:
@@ -100,7 +106,10 @@ def _resolve_user_from_session(session: dict[str, Any] | None) -> AuthUser | Non
     email = _safe_string(getattr(supa_user, "email", None) or supa_user.get("email"))
     user_metadata = getattr(supa_user, "user_metadata", None) or supa_user.get("user_metadata") or {}
     full_name = _safe_string(user_metadata.get("full_name") or user_metadata.get("name"))
-    profile = _ensure_profile(user_id, email=email, full_name=full_name)
+    try:
+        profile = _ensure_profile(user_id, email=email, full_name=full_name)
+    except Exception:
+        profile = {"full_name": full_name or email, "role": "viewer"}
     return AuthUser(
         id=user_id,
         email=email,
