@@ -349,18 +349,13 @@ def pause_account(account_id: str, reason: str):
     return _client().table("tg_accounts").update(
         {
             "is_active": False,
-            "risk_status": "paused",
             "last_error": reason,
         }
     ).eq("id", account_id).execute().data
 
 
 def clear_account_risk(account_id: str):
-    return _client().table("tg_accounts").update(
-        {
-            "risk_status": "active",
-        }
-    ).eq("id", account_id).execute().data
+    return None
 
 
 def get_campaign_runs(campaign_id: str, limit: int = 20):
