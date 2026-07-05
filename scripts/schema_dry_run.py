@@ -27,19 +27,20 @@ def _build_sql(report: dict) -> str:
             lines.append(f"-- {table}.{column}")
             lines.append(sql)
             lines.append("")
-    lines.append("-- Full report JSON")
-    lines.append(json.dumps(report, indent=2, ensure_ascii=False))
     lines.append("")
     return "\n".join(lines)
 
 
 def main() -> int:
     report = build_schema_reconcile()
-    output = _build_sql(report)
-    out_path = ROOT / "schema_dry_run.sql"
-    out_path.write_text(output, encoding="utf-8")
-    print(output)
-    print(f"-- Wrote {out_path}")
+    sql_output = _build_sql(report)
+    sql_path = ROOT / "schema_dry_run.sql"
+    json_path = ROOT / "schema_dry_run.report.json"
+    sql_path.write_text(sql_output, encoding="utf-8")
+    json_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(sql_output)
+    print(f"-- Wrote {sql_path}")
+    print(f"-- Wrote {json_path}")
     return 0
 
 
