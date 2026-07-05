@@ -283,22 +283,25 @@ def get_real_schema() -> dict[str, set[str]]:
     if psycopg is None:
         raise RuntimeError("psycopg is required to read schema from Supabase")
     tables = list(SCHEMA_EXPECTATIONS.keys())
-    with psycopg.connect(db_url) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                select table_name, column_name
-                from information_schema.columns
-                where table_schema = 'public'
-                  and table_name = any(%s)
-                order by table_name, ordinal_position
-                """,
-                (tables,),
-            )
-            schema: dict[str, set[str]] = {table: set() for table in tables}
-            for table_name, column_name in cur.fetchall():
-                schema.setdefault(table_name, set()).add(column_name)
-            return schema
+    try:
+        with psycopg.connect(db_url) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    select table_name, column_name
+                    from information_schema.columns
+                    where table_schema = 'public'
+                      and table_name = any(%s)
+                    order by table_name, ordinal_position
+                    """,
+                    (tables,),
+                )
+                schema: dict[str, set[str]] = {table: set() for table in tables}
+                for table_name, column_name in cur.fetchall():
+                    schema.setdefault(table_name, set()).add(column_name)
+                return schema
+    except Exception:
+        return {}
 
 
 @lru_cache(maxsize=1)
@@ -312,6 +315,17 @@ def has_column(table: str, column: str) -> bool:
 
 def build_schema_reconcile() -> dict[str, Any]:
     actual = get_real_schema()
+    if not actual:
+        return {
+            "ok": False,
+            "error": "schema_unavailable",
+            "tables": sorted(SCHEMA_EXPECTATIONS.keys()),
+            "missing": {},
+            "extra": {},
+            "actual": {},
+            "expected": {table: sorted(cols) for table, cols in SCHEMA_EXPECTATIONS.items()},
+            "suggested_migrations": [],
+        }
     missing: dict[str, list[str]] = {}
     extra: dict[str, list[str]] = {}
     suggestions: list[dict[str, str]] = []

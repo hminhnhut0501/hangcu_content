@@ -367,7 +367,9 @@ def get_campaign_runs(campaign_id: str, limit: int = 20):
 
 
 def get_campaign_runs_page(campaign_id: str, limit: int = 20, offset: int = 0, status: str | None = None):
-    query = _client().table("campaign_runs").select("*").eq("campaign_id", campaign_id).order("created_at", desc=True)
+    query = _client().table("campaign_runs").select("*").eq("campaign_id", campaign_id)
+    if has_column("campaign_runs", "created_at"):
+        query = query.order("created_at", desc=True)
     if status:
         query = query.eq("status", status)
     if limit is not None:
@@ -390,7 +392,9 @@ def get_campaign_run(run_id: str):
 
 
 def list_queue_jobs(*, campaign_id: str | None = None, status: str | None = None, limit: int = 50):
-    query = _client().table("queue_jobs").select("*").order("created_at", desc=True)
+    query = _client().table("queue_jobs").select("*")
+    if has_column("queue_jobs", "created_at"):
+        query = query.order("created_at", desc=True)
     if campaign_id:
         query = query.eq("campaign_id", campaign_id)
     if status:
