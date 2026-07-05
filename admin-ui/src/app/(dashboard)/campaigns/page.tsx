@@ -343,6 +343,9 @@ export default function CampaignsPage() {
 
   return (
     <Box>
+      <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+        Campaign builder chính đã được gom vào <strong>Dự án</strong>. Màn này chỉ còn là entry phụ để chạy thử nhanh.
+      </Alert>
       <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
         Campaign workspace vận hành thật từ backend.
       </Typography>

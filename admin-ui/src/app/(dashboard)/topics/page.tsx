@@ -167,6 +167,9 @@ export default function TopicsPage() {
 
   return (
     <Box>
+      <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+        Workspace chính đã được gom về mục <strong>Dự án</strong>. Màn này chỉ còn là entry phụ để kiểm tra nhanh topic.
+      </Alert>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 800 }}>Topics</Typography>

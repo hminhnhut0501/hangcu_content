@@ -20,6 +20,9 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import Drawer from '@mui/material/Drawer';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
 import Switch from '@mui/material/Switch';
@@ -160,6 +163,7 @@ export default function ProjectsPage() {
   const [toast, setToast] = React.useState<{ show: boolean; msg: string; type: 'success' | 'error' }>({ show: false, msg: '', type: 'success' });
   const [workspaceOpen, setWorkspaceOpen] = React.useState(false);
   const [workspaceMode, setWorkspaceMode] = React.useState<'create' | 'edit'>('create');
+  const [workspaceTab, setWorkspaceTab] = React.useState<'overview' | 'topics' | 'campaigns' | 'observability'>('overview');
   const [workspaceProject, setWorkspaceProject] = React.useState<ProjectRow>({
     name: '',
     description: '',
@@ -449,6 +453,7 @@ export default function ProjectsPage() {
 
   const openCreateProject = () => {
     setWorkspaceMode('create');
+    setWorkspaceTab('overview');
     setWorkspaceProject({
       name: '',
       description: '',
@@ -464,6 +469,7 @@ export default function ProjectsPage() {
 
   const openProjectWorkspace = (project: ProjectRow) => {
     setWorkspaceMode('edit');
+    setWorkspaceTab('overview');
     setWorkspaceProject({
       ...project,
       auto_enabled: Boolean(project.auto_enabled),
@@ -480,6 +486,7 @@ export default function ProjectsPage() {
 
   const closeWorkspace = () => {
     setWorkspaceOpen(false);
+    setWorkspaceTab('overview');
     setTopicEdit(null);
     setCampaignEdit(null);
     setPasteDialogOpen(false);
@@ -819,134 +826,185 @@ export default function ProjectsPage() {
         </TableContainer>
       </Card>
 
-      <Dialog
+      <Drawer
         open={workspaceOpen}
         onClose={closeWorkspace}
-        fullWidth
-        maxWidth="lg"
+        anchor="right"
+        variant="temporary"
         sx={{
-          '& .MuiDialog-paper': {
-            borderRadius: 4,
+          '& .MuiDrawer-paper': {
+            width: { xs: '100vw', lg: 'min(92vw, 1560px)' },
+            maxWidth: '100vw',
+            borderRadius: { xs: 0, lg: '24px 0 0 24px' },
             overflow: 'hidden',
+            bgcolor: 'background.default',
           },
         }}
       >
-        <DialogTitle sx={{ pb: 1, bgcolor: 'rgba(148, 163, 184, 0.05)' }}>
-          {workspaceMode === 'create' ? 'Tạo project' : `Project: ${workspaceProject.name || 'Chưa đặt tên'}`}
-        </DialogTitle>
-        <DialogContent dividers sx={{ display: 'grid', gap: 3, pt: 2 }}>
-          <Box sx={{ display: 'grid', gap: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Thông tin dự án</Typography>
-            <TextField
-              label="Tên project"
-              fullWidth
-              required
-              value={workspaceProject.name}
-              onChange={(e) => setWorkspaceProject((current) => ({ ...current, name: e.target.value }))}
-              helperText="Project chỉ để gom topic và campaign con."
-            />
-            <TextField
-              label="Mô tả"
-              fullWidth
-              multiline
-              minRows={2}
-              value={workspaceProject.description || ''}
-              onChange={(e) => setWorkspaceProject((current) => ({ ...current, description: e.target.value }))}
-            />
-          </Box>
-
-          <Divider />
-
-          <Box sx={{ display: 'grid', gap: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Auto scheduler</Typography>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={Boolean(workspaceProject.auto_enabled)}
-                  onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_enabled: e.target.checked }))}
-                />
-              }
-              label="Bật auto gửi ở cấp project"
-            />
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-              <TextField
-                label="Khung giờ gửi"
-                value={workspaceProject.auto_slots || ''}
-                onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_slots: e.target.value }))}
-                fullWidth
-                helperText="Ví dụ: 09:00,13:30,20:15"
-              />
-              <TextField
-                label="Mỗi lượt chọn bao nhiêu campaign"
-                type="number"
-                value={workspaceProject.auto_pick_count || 1}
-                onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_pick_count: Number(e.target.value || 1) }))}
-                fullWidth
-              />
-            </Box>
-            <TextField
-              select
-              label="Thứ tự gửi"
-              value={workspaceProject.auto_strategy || 'round_robin'}
-              onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_strategy: e.target.value }))}
-              fullWidth
-              helperText="Scheduler sẽ đi tuần tự theo topic/campaign con hoặc theo chiến lược chọn."
-            >
-              <MenuItem value="round_robin">Round robin theo topic</MenuItem>
-              <MenuItem value="newest">Campaign mới nhất</MenuItem>
-              <MenuItem value="oldest">Campaign cũ nhất</MenuItem>
-              <MenuItem value="least_recent">Campaign ít chạy nhất</MenuItem>
-              <MenuItem value="priority">Ưu tiên theo trạng thái</MenuItem>
-            </TextField>
-            <Card variant="outlined" sx={{ p: 1.75, bgcolor: 'rgba(15, 23, 42, 0.35)', borderRadius: 3 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Auto status</Typography>
-              {autoStatus?.ok ? (
-                <Box sx={{ display: 'grid', gap: 1, mt: 1 }}>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Chip label={autoStatus.group?.auto_enabled ? 'Enabled' : 'Disabled'} color={autoStatus.group?.auto_enabled ? 'success' : 'default'} size="small" />
-                    <Chip label={`Campaigns: ${autoStatus.campaign_count || 0}`} size="small" variant="outlined" />
-                    <Chip label={`Selected: ${(autoStatus.selected_campaign_ids || []).length}`} size="small" variant="outlined" />
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Next run: {formatIso(autoStatus.group?.auto_next_run_at)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Last result: {autoStatus.group?.auto_last_result || '-'}{autoStatus.group?.auto_last_error ? ` · ${autoStatus.group.auto_last_error}` : ''}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Topics: {(autoStatus.selected_topics || []).join(', ') || '-'}
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
-                    {(autoStatus.next_preview || []).map((item) => (
-                      <Chip
-                        key={item.campaign_id}
-                        size="small"
-                        variant="outlined"
-                        label={`${item.title || item.campaign_id || 'campaign'} · #${item.last_msg_id || 0}`}
-                      />
-                    ))}
-                  </Box>
-                </Box>
-              ) : (
-                <Alert severity="info" variant="outlined" sx={{ mt: 1 }}>
-                  {autoStatus?.error || 'Chưa có auto status.'}
-                </Alert>
-              )}
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1.5 }}>
-                <Button variant="contained" onClick={handleRunAutoNow} disabled={!workspaceProject.id} sx={{ borderRadius: 999 }}>
-                  Run auto now
-                </Button>
-                <Button variant="outlined" onClick={() => mutateAutoStatus()} disabled={!workspaceProject.id} sx={{ borderRadius: 999 }}>
-                  Refresh status
+        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ p: 2.5, borderBottom: '1px solid rgba(148, 163, 184, 0.16)', bgcolor: 'rgba(148, 163, 184, 0.04)' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
+              <Box>
+                <Typography variant="overline" sx={{ letterSpacing: 1.4, fontWeight: 800, color: 'text.secondary' }}>
+                  PROJECT WORKSPACE
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 900 }}>
+                  {workspaceMode === 'create' ? 'Tạo project' : `Project: ${workspaceProject.name || 'Chưa đặt tên'}`}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Một drawer duy nhất cho project, topic đích và campaign con.
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {workspaceMode === 'edit' && selectedProject?.id && (
+                  <Button color="error" onClick={() => handleDeleteProject(selectedProject.id!)}>Xoá project</Button>
+                )}
+                <Button onClick={closeWorkspace}>Đóng</Button>
+                <Button onClick={handleProjectSave} variant="contained">
+                  {workspaceMode === 'create' ? 'Tạo' : 'Lưu'}
                 </Button>
               </Box>
-            </Card>
+            </Box>
+            <Tabs
+              value={workspaceMode === 'create' ? 'overview' : workspaceTab}
+              onChange={(_, value) => setWorkspaceTab(value)}
+              sx={{ mt: 2, minHeight: 40 }}
+            >
+              <Tab value="overview" label="Tổng quan" />
+              <Tab value="topics" label="Topics" disabled={workspaceMode === 'create'} />
+              <Tab value="campaigns" label="Campaigns" disabled={workspaceMode === 'create'} />
+              <Tab value="observability" label="Observability" disabled={workspaceMode === 'create'} />
+            </Tabs>
           </Box>
 
-          <Divider />
+          <Box sx={{ p: 3, overflow: 'auto', flex: 1, display: 'grid', gap: 3 }}>
+            {(workspaceMode === 'create' || workspaceTab === 'overview') && (
+              <Box sx={{ display: 'grid', gap: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Thông tin dự án</Typography>
+                <TextField
+                  label="Tên project"
+                  fullWidth
+                  required
+                  value={workspaceProject.name}
+                  onChange={(e) => setWorkspaceProject((current) => ({ ...current, name: e.target.value }))}
+                  helperText="Project chỉ để gom topic và campaign con."
+                />
+                <TextField
+                  label="Mô tả"
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  value={workspaceProject.description || ''}
+                  onChange={(e) => setWorkspaceProject((current) => ({ ...current, description: e.target.value }))}
+                />
 
-          {workspaceMode === 'edit' && (
-            <>
+                <Divider />
+
+                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Auto scheduler</Typography>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(workspaceProject.auto_enabled)}
+                      onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_enabled: e.target.checked }))}
+                    />
+                  }
+                  label="Bật auto gửi ở cấp project"
+                />
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                  <TextField
+                    label="Khung giờ gửi"
+                    value={workspaceProject.auto_slots || ''}
+                    onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_slots: e.target.value }))}
+                    fullWidth
+                    helperText="Ví dụ: 09:00,13:30,20:15"
+                  />
+                  <TextField
+                    label="Mỗi lượt chọn bao nhiêu campaign"
+                    type="number"
+                    value={workspaceProject.auto_pick_count || 1}
+                    onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_pick_count: Number(e.target.value || 1) }))}
+                    fullWidth
+                  />
+                </Box>
+                <TextField
+                  select
+                  label="Thứ tự gửi"
+                  value={workspaceProject.auto_strategy || 'round_robin'}
+                  onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_strategy: e.target.value }))}
+                  fullWidth
+                  helperText="Scheduler sẽ đi tuần tự theo topic/campaign con hoặc theo chiến lược chọn."
+                >
+                  <MenuItem value="round_robin">Round robin theo topic</MenuItem>
+                  <MenuItem value="newest">Campaign mới nhất</MenuItem>
+                  <MenuItem value="oldest">Campaign cũ nhất</MenuItem>
+                  <MenuItem value="least_recent">Campaign ít chạy nhất</MenuItem>
+                  <MenuItem value="priority">Ưu tiên theo trạng thái</MenuItem>
+                </TextField>
+                <Card variant="outlined" sx={{ p: 1.75, bgcolor: 'rgba(15, 23, 42, 0.35)', borderRadius: 3 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Auto status</Typography>
+                  {autoStatus?.ok ? (
+                    <Box sx={{ display: 'grid', gap: 1, mt: 1 }}>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Chip label={autoStatus.group?.auto_enabled ? 'Enabled' : 'Disabled'} color={autoStatus.group?.auto_enabled ? 'success' : 'default'} size="small" />
+                        <Chip label={`Campaigns: ${autoStatus.campaign_count || 0}`} size="small" variant="outlined" />
+                        <Chip label={`Selected: ${(autoStatus.selected_campaign_ids || []).length}`} size="small" variant="outlined" />
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Next run: {formatIso(autoStatus.group?.auto_next_run_at)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Last result: {autoStatus.group?.auto_last_result || '-'}{autoStatus.group?.auto_last_error ? ` · ${autoStatus.group.auto_last_error}` : ''}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Topics: {(autoStatus.selected_topics || []).join(', ') || '-'}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+                        {(autoStatus.next_preview || []).map((item) => (
+                          <Chip
+                            key={item.campaign_id}
+                            size="small"
+                            variant="outlined"
+                            label={`${item.title || item.campaign_id || 'campaign'} · #${item.last_msg_id || 0}`}
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  ) : (
+                    <Alert severity="info" variant="outlined" sx={{ mt: 1 }}>
+                      {autoStatus?.error || 'Chưa có auto status.'}
+                    </Alert>
+                  )}
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1.5 }}>
+                    <Button variant="contained" onClick={handleRunAutoNow} disabled={!workspaceProject.id} sx={{ borderRadius: 999 }}>
+                      Run auto now
+                    </Button>
+                    <Button variant="outlined" onClick={() => mutateAutoStatus()} disabled={!workspaceProject.id} sx={{ borderRadius: 999 }}>
+                      Refresh status
+                    </Button>
+                  </Box>
+                </Card>
+
+                {modelSummary?.ok && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1.25 }}>
+                    {Object.entries(modelSummary.model || {}).slice(0, 4).map(([key, item]) => (
+                      <Card key={key} variant="outlined" sx={{ p: 1.5, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.34)' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 900, letterSpacing: 1 }}>
+                          {key}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, mt: 0.25 }}>
+                          {item.canonical || item.table}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                          {item.summary}
+                        </Typography>
+                      </Card>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            )}
+
+            {workspaceMode === 'edit' && workspaceTab === 'topics' && (
               <Box sx={{ display: 'grid', gap: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Topics</Typography>
@@ -1029,9 +1087,9 @@ export default function ProjectsPage() {
                   </Table>
                 </TableContainer>
               </Box>
+            )}
 
-              <Divider />
-
+            {workspaceMode === 'edit' && workspaceTab === 'campaigns' && (
               <Box sx={{ display: 'grid', gap: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Campaign con</Typography>
@@ -1141,22 +1199,24 @@ export default function ProjectsPage() {
                     </TableBody>
                   </Table>
                 </TableContainer>
+              </Box>
+            )}
 
-                {selectedCampaign && (
+            {workspaceMode === 'edit' && workspaceTab === 'observability' && (
+              <Box sx={{ display: 'grid', gap: 2 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Observability</Typography>
+                {selectedCampaign ? (
                   <CampaignTimelinePanel campaign={selectedCampaign} />
+                ) : (
+                  <Alert severity="info" variant="outlined">
+                    Chọn một campaign để xem timeline job gần nhất.
+                  </Alert>
                 )}
               </Box>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          {workspaceMode === 'edit' && selectedProject?.id && (
-            <Button color="error" onClick={() => handleDeleteProject(selectedProject.id!)}>Xoá project</Button>
-          )}
-          <Button onClick={closeWorkspace}>Huỷ</Button>
-          <Button onClick={handleProjectSave} variant="contained">{workspaceMode === 'create' ? 'Tạo' : 'Lưu'}</Button>
-        </DialogActions>
-      </Dialog>
+            )}
+          </Box>
+        </Box>
+      </Drawer>
 
       <Dialog open={!!topicEdit} onClose={() => setTopicEdit(null)} fullWidth maxWidth="sm">
         <DialogTitle>Rename topic</DialogTitle>
