@@ -52,6 +52,25 @@ def list_accounts():
         return []
 
 
+def debug_accounts_snapshot():
+    try:
+        query = _client().table("tg_accounts").select("id,last_error")
+        rows = query.execute().data or []
+        return {
+            "ok": True,
+            "count": len(rows),
+            "ids": [row.get("id") for row in rows if row.get("id")],
+            "last_error": next((row.get("last_error") for row in rows if row.get("last_error")), None),
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "count": 0,
+            "ids": [],
+            "last_error": str(exc),
+        }
+
+
 def get_account_by_id(account_id: str):
     try:
         rows = _client().table("tg_accounts").select(_SAFE_ACCOUNT_SELECT).eq("id", account_id).limit(1).execute().data or []

@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.repositories.content_repo import create_event
 from app.repositories.system_repo import (
     create_account as repo_create_account,
+    debug_accounts_snapshot,
     delete_account as repo_delete_account,
     get_account_by_id,
     list_accounts as repo_list_accounts,
@@ -15,6 +16,11 @@ from app.schemas.common import StatusResponse
 from app.services.account_service import test_account_connection
 
 router = APIRouter()
+
+
+@router.get("/debug")
+def debug_accounts_api():
+    return debug_accounts_snapshot()
 
 
 @router.get("")
