@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.repositories.content_repo import create_event, delete_row, get_row, insert_row, list_rows_filtered, now_iso, update_row
+from app.repositories.content_repo import create_event, delete_row, get_row, insert_row, list_rows_filtered, now_iso, update_row, get_account_pool_report
 from app.schemas.campaigns import CampaignCreate, CampaignUpdate
 from app.schemas.responses import DeleteResponse, EntityResponse
 from app.services.scheduler_service import schedule_fields
@@ -45,6 +45,17 @@ def run_campaign(campaign_id: str):
     campaign = get_row("content_campaigns", campaign_id)
     if not campaign:
         raise HTTPException(status_code=404, detail="campaign_not_found")
+    pool = get_account_pool_report()
+    if int(pool.get("eligible") or 0) <= 0:
+        detail = f"no_eligible_telegram_account: {pool.get('reasons') or {}}"
+        create_event(
+            "error",
+            "campaign_run_blocked_no_account",
+            "Campaign run blocked: no eligible Telegram account",
+            {"campaign_id": campaign_id, "pool": pool},
+            campaign_id=campaign_id,
+        )
+        raise HTTPException(status_code=503, detail=detail)
     try:
         run = insert_row(
             "campaign_runs",
@@ -111,7 +122,7 @@ def run_campaign(campaign_id: str):
         )
         raise HTTPException(status_code=503, detail="queue_job_insert_failed")
     update_row("content_campaigns", campaign_id, {"status": "queued", "last_run_at": now_iso()})
-    create_event("info", "campaign_queued", "Campaign queued for run", {"job_id": row["id"], "run_id": run["id"]}, campaign_id=campaign_id)
+    create_event("info", "campaign_queued", "Campaign queued for run", {"job_id": row["id"], "run_id": run["id"], "pool": pool}, campaign_id=campaign_id)
     return {"id": row["id"]}
 
 
