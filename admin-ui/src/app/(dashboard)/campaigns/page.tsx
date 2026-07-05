@@ -16,6 +16,7 @@ import TableRow from "@mui/material/TableRow";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Chip from "@mui/material/Chip";
+import StateChip from '../../../components/StateChip';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Grid from "@mui/material/Grid";
@@ -98,12 +99,11 @@ function CampaignFlowState({ campaignId, campaignStatus }: { campaignId: string;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-      <Chip
+      <StateChip
         label={flow.label}
-        size="small"
-        color={flow.color}
-        variant={flow.label === 'Waiting worker' ? 'outlined' : 'filled'}
-        sx={{ width: 'fit-content', fontSize: '0.7rem', fontWeight: 'bold' }}
+        tone={flow.color}
+        outlined={flow.label === 'Waiting worker'}
+        tooltip={flow.note}
       />
       <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260, display: 'block' }}>
         {flow.note}

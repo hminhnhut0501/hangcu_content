@@ -27,6 +27,7 @@ import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import ScienceIcon from '@mui/icons-material/Science';
 import BugReportIcon from '@mui/icons-material/BugReport';
+import StateChip from '../../../components/StateChip';
 
 type AccountRow = {
   id: string;
@@ -323,9 +324,11 @@ export default function SettingsPage() {
                           <Typography variant="caption" color="text.secondary">{account.phone || account.id}</Typography>
                         </TableCell>
                         <TableCell>
-                          <Tooltip title={account.is_active ? 'Account đang bật' : 'Account đang tắt'} arrow>
-                            <Chip size="small" label={account.is_active ? 'active' : 'inactive'} color={account.is_active ? 'success' : 'default'} />
-                          </Tooltip>
+                          <StateChip
+                            label={account.is_active ? 'active' : 'inactive'}
+                            tone={account.is_active ? 'success' : 'default'}
+                            tooltip={account.is_active ? 'Account đang bật' : 'Account đang tắt'}
+                          />
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                             is_active={String(Boolean(account.is_active))}
                           </Typography>
@@ -335,31 +338,23 @@ export default function SettingsPage() {
                             const reason = getAccountBlockReason(account);
                             return (
                               <>
-                                <Tooltip title={`risk_status=${account.risk_status || 'active'}`} arrow>
-                                  <Chip
-                                    size="small"
-                                    label={account.risk_status || 'active'}
-                                    color={(account.risk_status || 'active') === 'paused' ? 'warning' : (account.risk_status || 'active') === 'active' ? 'success' : 'error'}
-                                    sx={{ mr: 1 }}
-                                  />
-                                </Tooltip>
-                                <Tooltip title={`Chặn campaign: ${reason}`} arrow>
-                                  <Chip
-                                    size="small"
-                                    label={reason}
-                                    color={getAccountBlockTone(reason)}
-                                    variant={reason === 'Available' ? 'outlined' : 'filled'}
-                                  />
-                                </Tooltip>
-                                <Tooltip title={getQuotaDebugText(account)} arrow>
-                                  <Chip
-                                    size="small"
-                                    label={`Quota source: ${getQuotaSourceLabel(account)}`}
-                                    color={getQuotaSourceLabel(account) === 'backend' ? 'success' : 'warning'}
-                                    variant="outlined"
-                                    sx={{ ml: 1 }}
-                                  />
-                                </Tooltip>
+                                <StateChip
+                                  label={account.risk_status || 'active'}
+                                  tone={(account.risk_status || 'active') === 'paused' ? 'warning' : (account.risk_status || 'active') === 'active' ? 'success' : 'error'}
+                                  tooltip={`risk_status=${account.risk_status || 'active'}`}
+                                />
+                                <StateChip
+                                  label={reason}
+                                  tone={getAccountBlockTone(reason)}
+                                  tooltip={`Chặn campaign: ${reason}`}
+                                  outlined={reason === 'Available'}
+                                />
+                                <StateChip
+                                  label={`Quota source: ${getQuotaSourceLabel(account)}`}
+                                  tone={getQuotaSourceLabel(account) === 'backend' ? 'success' : 'warning'}
+                                  tooltip={getQuotaDebugText(account)}
+                                  outlined
+                                />
                               </>
                             );
                           })()}
@@ -449,18 +444,16 @@ export default function SettingsPage() {
                 />
                 {selectedAccount && (
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Tooltip title={getQuotaDebugText(selectedAccount)} arrow>
-                      <Chip
-                        size="small"
-                        label={`Quota source: ${getQuotaSourceLabel(selectedAccount)}`}
-                        color={getQuotaSourceLabel(selectedAccount) === 'backend' ? 'success' : 'warning'}
-                        variant="outlined"
-                      />
-                    </Tooltip>
-                    <Chip
-                      size="small"
+                    <StateChip
+                      label={`Quota source: ${getQuotaSourceLabel(selectedAccount)}`}
+                      tone={getQuotaSourceLabel(selectedAccount) === 'backend' ? 'success' : 'warning'}
+                      tooltip={getQuotaDebugText(selectedAccount)}
+                      outlined
+                    />
+                    <StateChip
                       label={`Effective quota: ${Number(selectedAccount.daily_job_limit || 30)}`}
-                      variant="outlined"
+                      tone="default"
+                      outlined
                     />
                   </Box>
                 )}

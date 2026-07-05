@@ -30,6 +30,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import StateChip from '../../../components/StateChip';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -317,12 +318,11 @@ export default function ProjectsPage() {
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, minWidth: 260 }}>
-        <Chip
+        <StateChip
           label={flow.label}
-          size="small"
-          color={flow.color}
-          variant={flow.label === 'Waiting worker' ? 'outlined' : 'filled'}
-          sx={{ width: 'fit-content', fontSize: '0.7rem', fontWeight: 800 }}
+          tone={flow.color}
+          outlined={flow.label === 'Waiting worker'}
+          tooltip={flow.note}
         />
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.5 }}>
           {flow.note}
@@ -900,7 +900,7 @@ export default function ProjectsPage() {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip label={project.status || 'active'} size="small" color={statusTone(project.status)} variant="outlined" />
+                <StateChip label={project.status || 'active'} tone={statusTone(project.status)} outlined tooltip={`project status=${project.status || 'active'}`} />
                   </TableCell>
                   <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                     <IconButton color="primary" onClick={() => openProjectWorkspace(project)} title="Mở">

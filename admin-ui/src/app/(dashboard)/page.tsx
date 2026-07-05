@@ -11,6 +11,7 @@ import CardContent from "@mui/material/CardContent";
 import CircularProgress from "@mui/material/CircularProgress";
 import Chip from "@mui/material/Chip";
 import Tooltip from "@mui/material/Tooltip";
+import StateChip from '../../components/StateChip';
 
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -210,22 +211,28 @@ export default function Dashboard() {
                 </Box>
               </Box>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                <Tooltip title={workerBadgeReason} arrow>
-                  <Chip
-                    label={`Worker: ${workerBadge}`}
-                    color={workerBadge === 'down' ? 'error' : workerBadge === 'alive' ? 'success' : workerBadge === 'idle' ? 'info' : 'default'}
-                    variant="filled"
-                  />
-                </Tooltip>
-                <Tooltip title={`raw=${workerStatus} · heartbeat ${workerHeartbeatAgeLabel}`} arrow>
-                  <Chip label={`worker raw: ${workerStatus}`} color={statusTone(workerStatus)} variant="outlined" />
-                </Tooltip>
-                <Tooltip title={`scheduler=${schedulerStatus}`} arrow>
-                  <Chip label={`scheduler: ${schedulerStatus}`} color={statusTone(schedulerStatus)} />
-                </Tooltip>
-                <Tooltip title={`accounts total=${health?.counts?.accounts ?? 0}`} arrow>
-                  <Chip label={`accounts: ${health?.counts?.accounts ?? 0}`} variant="outlined" />
-                </Tooltip>
+                <StateChip
+                  label={`Worker: ${workerBadge}`}
+                  tone={workerBadge === 'down' ? 'error' : workerBadge === 'alive' ? 'success' : workerBadge === 'idle' ? 'info' : 'default'}
+                  tooltip={workerBadgeReason}
+                />
+                <StateChip
+                  label={`worker raw: ${workerStatus}`}
+                  tone={statusTone(workerStatus)}
+                  tooltip={`raw=${workerStatus} · heartbeat ${workerHeartbeatAgeLabel}`}
+                  outlined
+                />
+                <StateChip
+                  label={`scheduler: ${schedulerStatus}`}
+                  tone={statusTone(schedulerStatus)}
+                  tooltip={`scheduler=${schedulerStatus}`}
+                />
+                <StateChip
+                  label={`accounts: ${health?.counts?.accounts ?? 0}`}
+                  tone="default"
+                  tooltip={`accounts total=${health?.counts?.accounts ?? 0}`}
+                  outlined
+                />
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.6 }}>
                 {workerBadgeReason}
@@ -249,11 +256,11 @@ export default function Dashboard() {
                 </Box>
               </Box>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2 }}>
-                <Chip label={`active ${safeAccounts}`} color="success" variant="outlined" />
-                <Chip label={`paused ${pausedAccounts}`} color="warning" variant="outlined" />
-                <Chip label={`risky ${riskyAccounts}`} color="error" variant="outlined" />
-                <Chip label={`pending ${pendingJobs}`} variant="outlined" />
-                <Chip label={`running ${runningJobs}`} variant="outlined" />
+                <StateChip label={`active ${safeAccounts}`} tone="success" outlined compact />
+                <StateChip label={`paused ${pausedAccounts}`} tone="warning" outlined compact />
+                <StateChip label={`risky ${riskyAccounts}`} tone="error" outlined compact />
+                <StateChip label={`pending ${pendingJobs}`} tone="default" outlined compact />
+                <StateChip label={`running ${runningJobs}`} tone="info" outlined compact />
               </Box>
               <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                 <ShieldIcon fontSize="small" />
