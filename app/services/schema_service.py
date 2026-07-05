@@ -161,6 +161,39 @@ CANONICAL_SCHEMA_EXPECTATIONS: dict[str, set[str]] = {
     "logs": SCHEMA_EXPECTATIONS["content_events"],
 }
 
+WORKSPACE_MODEL = {
+    "project": {
+        "table": "content_groups",
+        "canonical": "projects",
+        "role": "container",
+        "summary": "Gom topics và campaign children theo một workspace duy nhất.",
+    },
+    "topic": {
+        "table": "content_topics",
+        "canonical": "topics",
+        "role": "destination",
+        "summary": "Lưu đích vận hành, topic target seed và cursor.",
+    },
+    "campaign_child": {
+        "table": "content_campaigns",
+        "canonical": "campaign_children",
+        "role": "runtime flow",
+        "summary": "Luồng gửi thật, dùng topic đích từ project/topic.",
+    },
+    "run": {
+        "table": "campaign_runs",
+        "canonical": "runs",
+        "role": "execution trace",
+        "summary": "Lưu timeline chạy, queue state và kết quả.",
+    },
+    "log": {
+        "table": "content_events",
+        "canonical": "logs",
+        "role": "observability",
+        "summary": "Lưu event / warning / error để operator đọc nhanh.",
+    },
+}
+
 CANONICAL_COLUMN_SQL_TYPES: dict[tuple[str, str], str] = {
     ("projects", "id"): "uuid primary key default gen_random_uuid()",
     ("projects", "name"): "text not null",
@@ -549,3 +582,19 @@ def _suggest_column_sql(table: str, column: str) -> str:
 
 def get_schema_reconcile_status() -> dict[str, Any]:
     return dict(_LAST_SCHEMA_RECONCILE)
+
+
+def get_workspace_model_summary() -> dict[str, Any]:
+    return {
+        "ok": True,
+        "model": WORKSPACE_MODEL,
+        "canonical_tables": {key: sorted(value) for key, value in CANONICAL_SCHEMA_EXPECTATIONS.items()},
+        "physical_tables": {key: sorted(value) for key, value in SCHEMA_EXPECTATIONS.items()},
+        "flow": [
+            {"from": "project", "to": "topic", "relation": "has_many"},
+            {"from": "topic", "to": "campaign_child", "relation": "has_many"},
+            {"from": "campaign_child", "to": "run", "relation": "has_many"},
+            {"from": "run", "to": "log", "relation": "has_many"},
+        ],
+        "ui_rule": "Một workspace, một drawer, tabs nội bộ cho health/preflight/events.",
+    }

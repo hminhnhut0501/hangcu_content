@@ -7,7 +7,7 @@ from app.repositories.content_repo import count_rows
 from app.repositories.system_repo import list_accounts, list_logs, list_settings, recent_jobs
 from app.core.auth import require_user, require_admin
 from app.core.config import settings
-from app.services.schema_service import build_schema_reconcile, get_schema_reconcile_status
+from app.services.schema_service import build_schema_reconcile, get_schema_reconcile_status, get_workspace_model_summary
 
 router = APIRouter()
 
@@ -127,3 +127,8 @@ def schema_reconcile():
 @router.get("/schema/reconcile/status", dependencies=[Depends(require_user)])
 def schema_reconcile_status():
     return get_schema_reconcile_status()
+
+
+@router.get("/model", dependencies=[Depends(require_user)])
+def workspace_model():
+    return get_workspace_model_summary()

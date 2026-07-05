@@ -133,6 +133,13 @@ type ProjectAutoStatus = {
   }>;
 };
 
+type WorkspaceModelSummary = {
+  ok: boolean;
+  ui_rule?: string;
+  model?: Record<string, { table?: string; canonical?: string; role?: string; summary?: string }>;
+  flow?: Array<{ from?: string; to?: string; relation?: string }>;
+};
+
 const statusTone = (value?: string | null): 'success' | 'error' | 'warning' | 'info' | 'default' => {
   const key = String(value || '').toLowerCase();
   if (['active', 'enabled', 'success', 'sent', 'done'].includes(key)) return 'success';
@@ -148,6 +155,7 @@ export default function ProjectsPage() {
   const { data: projects, mutate: mutateProjects } = useSWR<ProjectRow[]>('/api/groups?limit=100', fetcher);
   const { data: topics, mutate: mutateTopics } = useSWR<TopicRow[]>('/api/topics?limit=200', fetcher);
   const { data: campaigns, mutate: mutateCampaigns } = useSWR<CampaignRow[]>('/api/campaigns?limit=100', fetcher);
+  const { data: modelSummary } = useSWR<WorkspaceModelSummary>('/api/internal/model', fetcher);
 
   const [toast, setToast] = React.useState<{ show: boolean; msg: string; type: 'success' | 'error' }>({ show: false, msg: '', type: 'success' });
   const [workspaceOpen, setWorkspaceOpen] = React.useState(false);
@@ -725,15 +733,15 @@ export default function ProjectsPage() {
         background: 'linear-gradient(135deg, rgba(2,132,199,0.18), rgba(15,23,42,0.35) 55%, rgba(16,185,129,0.12))',
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Box>
-          <Typography variant="overline" sx={{ letterSpacing: 1.6, fontWeight: 800, color: 'text.secondary' }}>
-            WORKSPACE
-          </Typography>
-          <Typography variant="h5" sx={{ fontWeight: 900 }}>Dự án</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Một màn quản lý duy nhất cho project, topic đích và campaign con.
-          </Typography>
-        </Box>
+          <Box>
+            <Typography variant="overline" sx={{ letterSpacing: 1.6, fontWeight: 800, color: 'text.secondary' }}>
+              WORKSPACE
+            </Typography>
+            <Typography variant="h5" sx={{ fontWeight: 900 }}>Dự án</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Một màn quản lý duy nhất cho project, topic đích và campaign con.
+            </Typography>
+          </Box>
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateProject} sx={{ borderRadius: 999, px: 2.5 }}>
             Tạo dự án
           </Button>
@@ -744,6 +752,23 @@ export default function ProjectsPage() {
           <Chip label={`Campaigns: ${projectStats.campaigns}`} variant="outlined" />
           <Chip label={`Auto: ${projectStats.autoEnabled ? 'on' : 'off'}`} color={projectStats.autoEnabled ? 'success' : 'default'} variant="filled" />
         </Box>
+        {modelSummary?.ok && (
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1.25, mt: 2 }}>
+            {Object.entries(modelSummary.model || {}).slice(0, 4).map(([key, item]) => (
+              <Card key={key} variant="outlined" sx={{ p: 1.5, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.34)' }}>
+                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 900, letterSpacing: 1 }}>
+                  {key}
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 800, mt: 0.25 }}>
+                  {item.canonical || item.table}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                  {item.summary}
+                </Typography>
+              </Card>
+            ))}
+          </Box>
+        )}
       </Card>
 
       <Card sx={{ overflow: 'hidden', borderRadius: 4 }}>

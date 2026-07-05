@@ -63,8 +63,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 const NAVIGATION = [
   { text: 'Tổng quan', href: '/', icon: <LayoutDashboard size={20} />, badge: '369' },
-  { text: 'Dự án & Kênh', href: '/projects', icon: <FolderOpen size={20} /> },
-  { text: 'Drip', href: '/drip', icon: <Waves size={20} /> },
+  { text: 'Dự án', href: '/projects', icon: <FolderOpen size={20} /> },
   { type: 'divider', text: 'CẤU HÌNH' },
   { text: 'Hệ thống & TK', href: '/settings', icon: <Settings size={20} /> },
   { text: 'Nhật ký', href: '/logs', icon: <Activity size={20} /> },
