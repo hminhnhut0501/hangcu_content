@@ -10,6 +10,9 @@ def _client():
     return get_supabase_client()
 
 
+_SAFE_ACCOUNT_SELECT = "id,name,phone,api_id,api_hash,session_ref,is_active,status,last_checked_at,last_error,daily_job_limit,daily_job_count,created_at,updated_at"
+
+
 def _refetch_account(account_id: str):
     rows = _client().table("tg_accounts").select("*").eq("id", account_id).limit(1).execute().data or []
     return _normalize_account_row(rows[0]) if rows else None
@@ -37,22 +40,24 @@ def _normalize_account_row(row: dict[str, Any] | None):
 
 def list_accounts():
     try:
-        query = _client().table("tg_accounts").select("*")
+        query = _client().table("tg_accounts").select(_SAFE_ACCOUNT_SELECT)
         if has_column("tg_accounts", "created_at"):
             query = query.order("created_at", desc=True)
         elif has_column("tg_accounts", "updated_at"):
             query = query.order("updated_at", desc=True)
         rows = query.execute().data or []
         return [_normalize_account_row(row) for row in rows]
-    except Exception:
+    except Exception as exc:
+        print(f"[list_accounts] failed: {exc}", flush=True)
         return []
 
 
 def get_account_by_id(account_id: str):
     try:
-        rows = _client().table("tg_accounts").select("*").eq("id", account_id).limit(1).execute().data or []
+        rows = _client().table("tg_accounts").select(_SAFE_ACCOUNT_SELECT).eq("id", account_id).limit(1).execute().data or []
         return _normalize_account_row(rows[0]) if rows else None
-    except Exception:
+    except Exception as exc:
+        print(f"[get_account_by_id] failed: {exc}", flush=True)
         return None
 
 
