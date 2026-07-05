@@ -155,8 +155,18 @@ export default function SettingsPage() {
   const resumeAccount = async (account: AccountRow) => {
     try {
       const res = await fetchApi(`/api/accounts/${account.id}/resume`, { method: 'POST' });
-      const resumedRow = (res as { row?: AccountRow | null } | undefined)?.row || null;
-      notify(resumedRow?.is_active ? 'Đã resume account.' : 'Resume chưa đổi trạng thái, kiểm tra backend.', resumedRow?.is_active ? 'success' : 'warning');
+      const payload = res as {
+        row?: AccountRow | null;
+        before?: AccountRow | null;
+        current?: AccountRow | null;
+      } | undefined;
+      const resumedRow = payload?.row || null;
+      const before = payload?.before || null;
+      const current = payload?.current || null;
+      const debugMessage = resumedRow?.is_active
+        ? 'Đã resume account.'
+        : `Resume chưa đổi trạng thái. before=${String(before?.is_active ?? 'n/a')} current=${String(current?.is_active ?? 'n/a')} row=${String(resumedRow?.is_active ?? 'n/a')}`;
+      notify(debugMessage, resumedRow?.is_active ? 'success' : 'warning');
       if (resumedRow) {
         setSelectedAccount(prev => (prev?.id === account.id ? resumedRow : prev));
       }

@@ -63,16 +63,18 @@ async def test_account_api(account_id: str):
 
 @router.post("/{account_id}/resume")
 def resume_account_api(account_id: str):
+    before = get_account_by_id(account_id)
     row = repo_resume_account(account_id)
     if not row:
-        return {"ok": False, "row": None}
+        return {"ok": False, "row": None, "before": before, "after": None, "current": before}
+    current = get_account_by_id(account_id)
     create_event(
         "info",
         "account_resumed",
         "Telegram account resumed manually",
         {"account_id": account_id},
     )
-    return {"ok": True, "row": row}
+    return {"ok": True, "row": row, "before": before, "after": row, "current": current}
 
 
 @router.post("/{account_id}/pause", response_model=StatusResponse)
