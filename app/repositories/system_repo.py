@@ -90,16 +90,31 @@ def delete_account(account_id: str):
 
 
 def resume_account(account_id: str):
+    payload = {
+        "is_active": True,
+        "risk_status": "active",
+        "risk_reason": "",
+        "last_error": "",
+    }
     try:
-        _client().table("tg_accounts").update({
-            "is_active": True,
-            "risk_status": "active",
-            "risk_reason": "",
-            "last_error": "",
-        }).eq("id", account_id).execute()
-        return _refetch_account(account_id)
-    except Exception:
-        return None
+        updated = _client().table("tg_accounts").update(payload).eq("id", account_id).execute().data or []
+        row = updated[0] if updated else None
+        refetched = _refetch_account(account_id)
+        return {
+            "ok": bool(row or refetched),
+            "updated": _normalize_account_row(row),
+            "refetched": refetched,
+            "payload": payload,
+            "error": None,
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "updated": None,
+            "refetched": _refetch_account(account_id),
+            "payload": payload,
+            "error": str(exc),
+        }
 
 
 def list_settings():

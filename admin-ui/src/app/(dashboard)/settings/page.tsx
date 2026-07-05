@@ -159,13 +159,14 @@ export default function SettingsPage() {
         row?: AccountRow | null;
         before?: AccountRow | null;
         current?: AccountRow | null;
+        error?: string | null;
       } | undefined;
       const resumedRow = payload?.row || null;
       const before = payload?.before || null;
       const current = payload?.current || null;
       const debugMessage = resumedRow?.is_active
         ? 'Đã resume account.'
-        : `Resume chưa đổi trạng thái. before=${String(before?.is_active ?? 'n/a')} current=${String(current?.is_active ?? 'n/a')} row=${String(resumedRow?.is_active ?? 'n/a')}`;
+        : `Resume chưa đổi trạng thái. before=${String(before?.is_active ?? 'n/a')} current=${String(current?.is_active ?? 'n/a')} row=${String(resumedRow?.is_active ?? 'n/a')}${payload?.error ? ` error=${payload.error}` : ''}`;
       notify(debugMessage, resumedRow?.is_active ? 'success' : 'warning');
       if (resumedRow) {
         setSelectedAccount(prev => (prev?.id === account.id ? resumedRow : prev));
