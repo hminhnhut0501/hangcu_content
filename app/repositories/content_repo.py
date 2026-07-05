@@ -367,77 +367,98 @@ def get_campaign_runs(campaign_id: str, limit: int = 20):
 
 
 def get_campaign_runs_page(campaign_id: str, limit: int = 20, offset: int = 0, status: str | None = None):
-    query = _client().table("campaign_runs").select("*").eq("campaign_id", campaign_id)
-    if has_column("campaign_runs", "created_at"):
-        query = query.order("created_at", desc=True)
-    if status:
-        query = query.eq("status", status)
-    if limit is not None:
-        query = query.range(int(offset or 0), int(offset or 0) + int(limit) - 1)
-    return query.execute().data or []
+    try:
+        query = _client().table("campaign_runs").select("*").eq("campaign_id", campaign_id)
+        if has_column("campaign_runs", "created_at"):
+            query = query.order("created_at", desc=True)
+        if status:
+            query = query.eq("status", status)
+        if limit is not None:
+            query = query.range(int(offset or 0), int(offset or 0) + int(limit) - 1)
+        return query.execute().data or []
+    except Exception:
+        return []
 
 
 def get_campaign_run(run_id: str):
-    rows = (
-        _client()
-        .table("campaign_runs")
-        .select("*")
-        .eq("id", run_id)
-        .limit(1)
-        .execute()
-        .data
-        or []
-    )
-    return rows[0] if rows else None
+    try:
+        rows = (
+            _client()
+            .table("campaign_runs")
+            .select("*")
+            .eq("id", run_id)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+        return rows[0] if rows else None
+    except Exception:
+        return None
 
 
 def list_queue_jobs(*, campaign_id: str | None = None, status: str | None = None, limit: int = 50):
-    query = _client().table("queue_jobs").select("*")
-    if has_column("queue_jobs", "created_at"):
-        query = query.order("created_at", desc=True)
-    if campaign_id:
-        query = query.eq("campaign_id", campaign_id)
-    if status:
-        query = query.eq("status", status)
-    if limit is not None:
-        query = query.range(0, int(limit) - 1)
-    return query.execute().data or []
+    try:
+        query = _client().table("queue_jobs").select("*")
+        if has_column("queue_jobs", "created_at"):
+            query = query.order("created_at", desc=True)
+        if campaign_id:
+            query = query.eq("campaign_id", campaign_id)
+        if status:
+            query = query.eq("status", status)
+        if limit is not None:
+            query = query.range(0, int(limit) - 1)
+        return query.execute().data or []
+    except Exception:
+        return []
 
 
 def get_queue_job(job_id: str):
-    rows = (
-        _client()
-        .table("queue_jobs")
-        .select("*")
-        .eq("id", job_id)
-        .limit(1)
-        .execute()
-        .data
-        or []
-    )
-    return rows[0] if rows else None
+    try:
+        rows = (
+            _client()
+            .table("queue_jobs")
+            .select("*")
+            .eq("id", job_id)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+        return rows[0] if rows else None
+    except Exception:
+        return None
 
 
 def list_auto_groups():
-    query = _client().table("content_groups").select("*").eq("auto_enabled", True).eq("status", "active")
-    if has_column("content_groups", "updated_at"):
-        query = query.order("updated_at", desc=False)
-    return query.execute().data or []
+    try:
+        query = _client().table("content_groups").select("*").eq("auto_enabled", True).eq("status", "active")
+        if has_column("content_groups", "updated_at"):
+            query = query.order("updated_at", desc=False)
+        return query.execute().data or []
+    except Exception:
+        return []
 
 
 def list_group_topics(group_id: str):
-    query = _client().table("content_topics").select("*").eq("group_id", group_id).eq("status", "active")
-    if has_column("content_topics", "sort_order"):
-        query = query.order("sort_order", desc=False)
-    if has_column("content_topics", "created_at"):
-        query = query.order("created_at", desc=False)
-    return query.execute().data or []
+    try:
+        query = _client().table("content_topics").select("*").eq("group_id", group_id).eq("status", "active")
+        if has_column("content_topics", "sort_order"):
+            query = query.order("sort_order", desc=False)
+        if has_column("content_topics", "created_at"):
+            query = query.order("created_at", desc=False)
+        return query.execute().data or []
+    except Exception:
+        return []
 
 
 def list_group_campaigns(group_id: str):
-    query = _client().table("content_campaigns").select("*").eq("group_id", group_id).eq("enabled", True)
-    if has_column("content_campaigns", "last_run_at"):
-        query = query.order("last_run_at", desc=False)
-    if has_column("content_campaigns", "created_at"):
-        query = query.order("created_at", desc=False)
-    return query.execute().data or []
+    try:
+        query = _client().table("content_campaigns").select("*").eq("group_id", group_id).eq("enabled", True)
+        if has_column("content_campaigns", "last_run_at"):
+            query = query.order("last_run_at", desc=False)
+        if has_column("content_campaigns", "created_at"):
+            query = query.order("created_at", desc=False)
+        return query.execute().data or []
+    except Exception:
+        return []

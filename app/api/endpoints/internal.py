@@ -93,4 +93,16 @@ def health_deep():
 
 @router.get("/schema/reconcile", dependencies=[Depends(require_user)])
 def schema_reconcile():
-    return build_schema_reconcile()
+    try:
+        return build_schema_reconcile()
+    except Exception as exc:
+        return {
+            "ok": False,
+            "error": str(exc),
+            "tables": [],
+            "missing": {},
+            "extra": {},
+            "actual": {},
+            "expected": {},
+            "suggested_migrations": [],
+        }
