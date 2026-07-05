@@ -104,17 +104,17 @@ async def _load_source_messages(client, campaign: dict) -> list[Message]:
     return [msg for msg in sorted(messages, key=_message_sort_key) if msg]
 
 
-async def _send_message_like(client, target_entity, message, *, default_caption: str = "") -> None:
+async def _send_message_like(client, target_entity, message, *, default_caption: str = "") -> bool:
     text = (getattr(message, "message", None) or "").strip()
     caption = text or default_caption or ""
     if getattr(message, "media", None):
         await client.send_file(target_entity, message.media, caption=caption)
-        return
+        return True
     if caption:
         await client.send_message(target_entity, caption)
-        return
-    # Keep empty messages visible in logs but do not send blank payloads.
-    raise RuntimeError(f"Empty message #{getattr(message, 'id', 0)}")
+        return True
+    # Skip blank posts so a single empty source message does not fail the whole campaign.
+    return False
 
 
 async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: str):
@@ -136,14 +136,31 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
     delay_min = max(0, int(campaign.get("delay_min") or 0))
     delay_max = max(delay_min, int(campaign.get("delay_max") or delay_min))
     total_sent = 0
+    skipped_empty = 0
     last_source_msg_id = int(campaign.get("last_msg_id") or 0)
     caption_prefix = str(campaign.get("caption") or "").strip()
     for msg in source_messages:
-        await _send_message_like(client, target_entity, msg, default_caption=caption_prefix)
-        total_sent += 1
+        sent = await _send_message_like(client, target_entity, msg, default_caption=caption_prefix)
         last_source_msg_id = max(last_source_msg_id, int(getattr(msg, "id", 0) or 0))
+        if not sent:
+            skipped_empty += 1
+            create_event(
+                "warning",
+                "campaign_source_message_empty",
+                "Skipped empty source message",
+                {
+                    "campaign_id": campaign["id"],
+                    "source_message_id": int(getattr(msg, "id", 0) or 0),
+                },
+                campaign_id=campaign["id"],
+            )
+            continue
+        total_sent += 1
         if delay_max > 0 and total_sent < len(source_messages):
             await asyncio.sleep(random.uniform(delay_min, delay_max) if delay_max > delay_min else float(delay_min))
+
+    if total_sent <= 0:
+        raise RuntimeError(f"No sendable source messages found (skipped_empty={skipped_empty})")
 
     increment_account_job_count(account_id)
     update_campaign(
@@ -175,6 +192,7 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
             "campaign_id": campaign["id"],
             "account_id": account_id,
             "sent_units": total_sent,
+            "skipped_empty": skipped_empty,
             "last_msg_id": last_source_msg_id,
             "target_topic_id": target_topic_id,
         },
@@ -186,6 +204,7 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
         "campaign_run_id": run_id,
         "account_id": account_id,
         "sent_units": total_sent,
+        "skipped_empty": skipped_empty,
         "last_msg_id": last_source_msg_id,
         "target_topic_id": target_topic_id,
     }
