@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import psycopg
+from functools import lru_cache
 
 from app.core.config import settings
 
@@ -163,6 +164,15 @@ def get_real_schema() -> dict[str, set[str]]:
             for table_name, column_name in cur.fetchall():
                 schema.setdefault(table_name, set()).add(column_name)
             return schema
+
+
+@lru_cache(maxsize=1)
+def get_real_schema_cached() -> dict[str, set[str]]:
+    return get_real_schema()
+
+
+def has_column(table: str, column: str) -> bool:
+    return column in get_real_schema_cached().get(table, set())
 
 
 def build_schema_reconcile() -> dict[str, Any]:

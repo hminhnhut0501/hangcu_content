@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Any
 
 from app.core.db import get_supabase_client
+from app.services.schema_service import has_column
 
 
 def _client():
@@ -290,12 +291,13 @@ def _reset_account_if_needed(account: dict[str, Any]):
     reset_at = account.get("daily_job_reset_at")
     today = _today_key()
     if not reset_at or str(reset_at)[:10] != today:
-        _client().table("tg_accounts").update(
-            {
-                "daily_job_count": 0,
-                "daily_job_reset_at": now_iso(),
-            }
-        ).eq("id", account["id"]).execute()
+        payload: dict[str, Any] = {}
+        if has_column("tg_accounts", "daily_job_count"):
+            payload["daily_job_count"] = 0
+        if has_column("tg_accounts", "daily_job_reset_at"):
+            payload["daily_job_reset_at"] = now_iso()
+        if payload:
+            _client().table("tg_accounts").update(payload).eq("id", account["id"]).execute()
         account["daily_job_count"] = 0
         account["daily_job_reset_at"] = now_iso()
 
@@ -337,12 +339,14 @@ def increment_account_job_count(account_id: str):
         return None
     _reset_account_if_needed(account)
     new_count = int(account.get("daily_job_count") or 0) + 1
-    return _client().table("tg_accounts").update(
-        {
-            "daily_job_count": new_count,
-            "daily_job_reset_at": account.get("daily_job_reset_at") or now_iso(),
-        }
-    ).eq("id", account_id).execute().data
+    payload: dict[str, Any] = {}
+    if has_column("tg_accounts", "daily_job_count"):
+        payload["daily_job_count"] = new_count
+    if has_column("tg_accounts", "daily_job_reset_at"):
+        payload["daily_job_reset_at"] = account.get("daily_job_reset_at") or now_iso()
+    if not payload:
+        return None
+    return _client().table("tg_accounts").update(payload).eq("id", account_id).execute().data
 
 
 def pause_account(account_id: str, reason: str):
