@@ -120,8 +120,6 @@ export default function TopicsPage() {
         method: 'POST',
         body: JSON.stringify({
           name: topicForm.name,
-          source_topic_id: topicForm.source_topic_id ? Number(topicForm.source_topic_id) : null,
-          target_topic_id: topicForm.target_topic_id ? Number(topicForm.target_topic_id) : null,
           target_link_seed: topicForm.target_link_seed || null,
         }),
       });
@@ -193,8 +191,6 @@ export default function TopicsPage() {
         method: 'PATCH',
         body: JSON.stringify({
           name: editingTopic.name,
-          source_topic_id: editingTopic.source_topic_id ? Number(editingTopic.source_topic_id) : null,
-          target_topic_id: editingTopic.target_topic_id ? Number(editingTopic.target_topic_id) : null,
           target_link_seed: editingTopic.target_link_seed || null,
           sort_order: editingTopic.sort_order ?? 0,
         }),
@@ -350,8 +346,6 @@ export default function TopicsPage() {
             fullWidth
             helperText={topicSeedParse.ok ? `Auto-detect: ${topicSeedParse.label}` : 'Đặt tên topic rõ ràng, hoặc dán target link seed để gợi ý.'}
           />
-          <TextField label="Source topic id" value={topicForm.source_topic_id} onChange={e => setTopicForm({ ...topicForm, source_topic_id: e.target.value })} fullWidth />
-          <TextField label="Target topic id" value={topicForm.target_topic_id} onChange={e => setTopicForm({ ...topicForm, target_topic_id: e.target.value })} fullWidth />
           <TextField
             label="Target link seed"
             value={topicForm.target_link_seed}
@@ -383,8 +377,6 @@ export default function TopicsPage() {
             onChange={e => updateEditingTopic({ name: e.target.value })}
             fullWidth
           />
-          <TextField label="Source topic id" value={editingTopic?.source_topic_id || ''} onChange={e => updateEditingTopic({ source_topic_id: e.target.value ? Number(e.target.value) : null })} fullWidth />
-          <TextField label="Target topic id" value={editingTopic?.target_topic_id || ''} onChange={e => updateEditingTopic({ target_topic_id: e.target.value ? Number(e.target.value) : null })} fullWidth />
           <TextField label="Target link seed" value={editingTopic?.target_link_seed || ''} onChange={e => updateEditingTopic({ target_link_seed: e.target.value })} fullWidth />
         </DialogContent>
         <DialogActions>
@@ -400,6 +392,9 @@ export default function TopicsPage() {
             {displayTopics.map((topic) => <MenuItem key={topic.id} value={topic.id}>{topic.name}</MenuItem>)}
           </TextField>
           <TextField label="Tên campaign" value={campaignForm.title} onChange={e => setCampaignForm({ ...campaignForm, title: e.target.value })} fullWidth />
+          <Alert severity="info" variant="outlined">
+            Campaign builder ở đây sẽ được refactor tiếp theo hướng smart mode. Hiện tại bạn có thể chọn topic đích, rồi dán link nguồn/đích nếu cần.
+          </Alert>
           <TextField
             label="Target link"
             value={campaignForm.target_link}

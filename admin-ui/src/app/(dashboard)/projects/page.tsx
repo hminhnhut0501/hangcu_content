@@ -1,23 +1,19 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import useSWR from 'swr';
-import { fetcher, fetchApi } from '../../../lib/api';
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import Card from "@mui/material/Card";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import Chip from "@mui/material/Chip";
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { fetchApi, fetcher } from '../../../lib/api';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Card from '@mui/material/Card';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import Dialog from '@mui/material/Dialog';
@@ -25,31 +21,26 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
-import Switch from '@mui/material/Switch';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import { detectTelegramIntent, parseTelegramLink, suggestTelegramTitle, type TelegramLinkParse } from '../../../lib/telegram-link';
-import TelegramPasteDialog from '../../../components/TelegramPasteDialog';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
-type GroupRow = {
+type ProjectRow = {
   id?: string;
   name: string;
-  source_link?: string | null;
-  target_link?: string | null;
-  auto_enabled?: boolean | null;
+  description?: string | null;
+  status?: string | null;
+  sort_order?: number | null;
 };
 
 export default function ProjectsPage() {
-  const { data: groups, mutate } = useSWR<GroupRow[]>('/api/groups?limit=100', fetcher);
-  const [toast, setToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({ show: false, msg: '', type: 'success' });
-  const [editingItem, setEditingItem] = useState<GroupRow | null>(null);
+  const { data: projects, mutate } = useSWR<ProjectRow[]>('/api/groups?limit=100', fetcher);
+  const [toast, setToast] = useState<{ show: boolean; msg: string; type: 'success' | 'error' }>({ show: false, msg: '', type: 'success' });
+  const [editingItem, setEditingItem] = useState<ProjectRow | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [pasteDialogOpen, setPasteDialogOpen] = useState(false);
-
-  const sourceParse = useMemo(() => parseTelegramLink(editingItem?.source_link || ''), [editingItem?.source_link]);
-  const targetParse = useMemo(() => parseTelegramLink(editingItem?.target_link || ''), [editingItem?.target_link]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xoá dự án này?')) return;
+    if (!confirm('Bạn có chắc chắn muốn xoá project này?')) return;
     try {
       await fetchApi(`/api/groups/${id}`, { method: 'DELETE' });
       setToast({ show: true, msg: 'Xoá thành công.', type: 'success' });
@@ -64,24 +55,17 @@ export default function ProjectsPage() {
     if (!editingItem) return;
     try {
       if (isCreating) {
-        await fetchApi(`/api/groups`, {
+        await fetchApi('/api/groups', {
           method: 'POST',
-          body: JSON.stringify({
-            name: editingItem.name,
-            source_link: editingItem.source_link,
-            target_link: editingItem.target_link,
-          })
+          body: JSON.stringify({ name: editingItem.name.trim() }),
         });
       } else {
         if (!editingItem.id) return;
         await fetchApi(`/api/groups/${editingItem.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
-            name: editingItem.name,
-            source_link: editingItem.source_link,
-            target_link: editingItem.target_link,
-            auto_enabled: editingItem.auto_enabled,
-          })
+            name: editingItem.name.trim(),
+          }),
         });
       }
       setToast({ show: true, msg: 'Lưu thành công.', type: 'success' });
@@ -93,44 +77,25 @@ export default function ProjectsPage() {
     }
   };
 
-  const displayGroups: GroupRow[] = groups || [];
-  const handlePasteApply = (payload: {
-    parsed: TelegramLinkParse;
-    title?: string;
-    targetLink?: string;
-    sourceStartLink?: string;
-    sourceEndLink?: string;
-    projectName?: string;
-  }) => {
-    setIsCreating(true);
-    setEditingItem((current) => ({
-      id: current?.id,
-      name: current?.name?.trim() ? current.name : (payload.projectName || payload.title || suggestTelegramTitle(payload.parsed, 'Project')),
-      source_link: payload.sourceStartLink || (detectTelegramIntent(payload.parsed) === 'source' ? payload.parsed.normalized : current?.source_link) || payload.parsed.normalized,
-      target_link: payload.targetLink || (detectTelegramIntent(payload.parsed) === 'target' ? payload.parsed.normalized : current?.target_link) || payload.parsed.normalized,
-      auto_enabled: current?.auto_enabled ?? false,
-    }));
-  };
+  const displayProjects: ProjectRow[] = projects || [];
 
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-          Dự án & Kênh
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" onClick={() => setPasteDialogOpen(true)}>Paste & detect</Button>
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />}
-            onClick={() => {
-              setIsCreating(true);
-              setEditingItem({ name: '', source_link: '', target_link: '' });
-            }}
-          >
-            Thêm Dự án
-          </Button>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 'bold' }}>Projects</Typography>
+          <Typography variant="body2" color="text.secondary">Chỉ là nhóm quản lý để gom topics và campaigns con.</Typography>
         </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => {
+            setIsCreating(true);
+            setEditingItem({ name: '' });
+          }}
+        >
+          Tạo project
+        </Button>
       </Box>
 
       <Card>
@@ -138,54 +103,33 @@ export default function ProjectsPage() {
           <Table>
             <TableHead sx={{ bgcolor: '#f1f5f9' }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Tên dự án</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Nguồn (Source)</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Đích (Target)</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Auto Push</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Tên project</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Trạng thái</TableCell>
                 <TableCell sx={{ fontWeight: 'bold', textAlign: 'right' }}>Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {displayGroups.map((group) => (
-                <TableRow key={group.id || group.name} hover>
+              {displayProjects.map((project) => (
+                <TableRow key={project.id || project.name} hover>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{group.name || 'No name'}</Typography>
-                    <Typography variant="caption" color="text.secondary">{group.id}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{project.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">{project.id}</Typography>
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {group.source_link || '-'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {group.target_link || '-'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={group.auto_enabled ? 'Bật' : 'Tắt'} 
-                      size="small"
-                      color={group.auto_enabled ? 'info' : 'default'}
-                    />
-                  </TableCell>
+                  <TableCell>{project.status || 'active'}</TableCell>
                   <TableCell align="right">
-                    <IconButton color="info" onClick={() => {
-                      setIsCreating(false);
-                      setEditingItem(group);
-                    }} title="Sửa">
+                    <IconButton color="info" onClick={() => { setIsCreating(false); setEditingItem(project); }} title="Sửa">
                       <EditIcon />
                     </IconButton>
-                    <IconButton color="error" onClick={() => group.id && handleDelete(group.id)} title="Xoá">
+                    <IconButton color="error" onClick={() => project.id && handleDelete(project.id)} title="Xoá">
                       <DeleteIcon />
                     </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
-              {(!displayGroups || displayGroups.length === 0) && (
+              {displayProjects.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
-                    <Typography color="text.secondary">Chưa có dự án nào.</Typography>
+                  <TableCell colSpan={3} align="center" sx={{ py: 5 }}>
+                    <Typography color="text.secondary">Chưa có project nào.</Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -196,49 +140,25 @@ export default function ProjectsPage() {
 
       <Dialog open={!!editingItem} onClose={() => setEditingItem(null)} fullWidth maxWidth="sm">
         <form onSubmit={handleSave}>
-          <DialogTitle>{isCreating ? 'Thêm Dự án mới' : 'Sửa Dự án'}</DialogTitle>
+          <DialogTitle>{isCreating ? 'Tạo project' : 'Sửa project'}</DialogTitle>
           <DialogContent dividers>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
-              <TextField 
-                label="Tên dự án" 
-                fullWidth 
+            <Box sx={{ display: 'grid', gap: 2, pt: 1 }}>
+              <TextField
+                label="Tên project"
+                fullWidth
                 required
                 value={editingItem?.name || ''}
-                onChange={e => editingItem && setEditingItem({ ...editingItem, name: e.target.value })}
-                helperText={'Tên dự án nên mô tả rõ group/channel.'}
+                onChange={(e) => editingItem && setEditingItem({ ...editingItem, name: e.target.value })}
+                helperText="Project chỉ để quản lý, không cần source/target link."
               />
-              <TextField 
-                label="Nguồn (Source Link)" 
-                fullWidth 
-                value={editingItem?.source_link || ''}
-                onChange={e => editingItem && setEditingItem({ ...editingItem, source_link: e.target.value })}
-                helperText={sourceParse.detail}
-                error={Boolean(editingItem?.source_link?.trim() && !sourceParse.ok)}
+              <TextField
+                label="Ghi chú"
+                fullWidth
+                multiline
+                minRows={3}
+                value={editingItem?.description || ''}
+                onChange={(e) => editingItem && setEditingItem({ ...editingItem, description: e.target.value })}
               />
-              <TextField 
-                label="Đích (Target Link)" 
-                fullWidth 
-                value={editingItem?.target_link || ''}
-                onChange={e => editingItem && setEditingItem({ ...editingItem, target_link: e.target.value })}
-                helperText={targetParse.detail}
-                error={Boolean(editingItem?.target_link?.trim() && !targetParse.ok)}
-              />
-              {(editingItem?.source_link?.trim() && !sourceParse.ok || editingItem?.target_link?.trim() && !targetParse.ok) && (
-                <Alert severity="error" variant="outlined">
-                  Link dự án đang sai format Telegram hoặc không đủ thông tin để xác định channel/group/topic. Hãy dán link chuẩn t.me.
-                </Alert>
-              )}
-              {!isCreating && (
-                <FormControlLabel 
-                  control={
-                    <Switch 
-                      checked={editingItem?.auto_enabled || false}
-                      onChange={e => editingItem && setEditingItem({ ...editingItem, auto_enabled: e.target.checked })}
-                    />
-                  } 
-                  label="Tự động Push (Auto Push)" 
-                />
-              )}
             </Box>
           </DialogContent>
           <DialogActions>
@@ -248,9 +168,9 @@ export default function ProjectsPage() {
         </form>
       </Dialog>
 
-      <Snackbar 
-        open={toast.show} 
-        autoHideDuration={3000} 
+      <Snackbar
+        open={toast.show}
+        autoHideDuration={3000}
         onClose={() => setToast({ ...toast, show: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
@@ -258,13 +178,6 @@ export default function ProjectsPage() {
           {toast.msg}
         </Alert>
       </Snackbar>
-
-      <TelegramPasteDialog
-        open={pasteDialogOpen}
-        mode="project"
-        onClose={() => setPasteDialogOpen(false)}
-        onApply={handlePasteApply}
-      />
     </Box>
   );
 }
