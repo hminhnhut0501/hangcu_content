@@ -28,6 +28,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SendIcon from '@mui/icons-material/Send';
+import { detectTelegramIntent, parseTelegramLink, suggestTelegramTitle, type TelegramLinkParse } from '../../../lib/telegram-link';
 
 type GroupRow = { id: string; name: string };
 type TopicRow = {
@@ -54,6 +55,7 @@ type CampaignForm = {
   schedule_enabled: boolean;
   schedule_slots: string;
 };
+
 
 export default function TopicsPage() {
   const { data: groups } = useSWR('/api/groups?limit=100', fetcher);
@@ -90,6 +92,19 @@ export default function TopicsPage() {
   }, [topics, selectedGroupId]);
 
   const selectedTopic = displayTopics.find((topic) => topic.id === selectedTopicId) || displayTopics[0] || null;
+  const topicSeedParse = useMemo(() => parseTelegramLink(topicForm.target_link_seed), [topicForm.target_link_seed]);
+  const campaignTargetParse = useMemo(() => parseTelegramLink(campaignForm.target_link), [campaignForm.target_link]);
+  const campaignSourceStartParse = useMemo(() => parseTelegramLink(campaignForm.source_start_link), [campaignForm.source_start_link]);
+  const campaignSourceEndParse = useMemo(() => parseTelegramLink(campaignForm.source_end_link), [campaignForm.source_end_link]);
+  const autoName = useMemo(() => {
+    if (topicSeedParse.chatSlug && topicSeedParse.kind !== 'unknown') {
+      return topicSeedParse.topicId ? `${topicSeedParse.chatSlug}-${topicSeedParse.topicId}` : topicSeedParse.chatSlug;
+    }
+    if (campaignTargetParse.chatSlug && campaignTargetParse.kind !== 'unknown') {
+      return campaignTargetParse.topicId ? `${campaignTargetParse.chatSlug}-${campaignTargetParse.topicId}` : campaignTargetParse.chatSlug;
+    }
+    return '';
+  }, [campaignTargetParse.chatSlug, campaignTargetParse.kind, campaignTargetParse.topicId, topicSeedParse.chatSlug, topicSeedParse.kind, topicSeedParse.topicId]);
 
   const notify = (msg: string, type: 'success' | 'error') => setToast({ show: true, msg, type });
   const updateEditingTopic = (patch: Partial<TopicRow>) => {
@@ -114,6 +129,56 @@ export default function TopicsPage() {
       notify('Đã tạo topic mới.', 'success');
     } catch {
       notify('Không thể tạo topic.', 'error');
+    }
+  };
+
+  const updateCampaignField = (field: keyof CampaignForm, value: string | number | boolean) => {
+    setCampaignForm((current) => ({ ...current, [field]: value } as CampaignForm));
+    if (field === 'target_link' && typeof value === 'string' && !campaignForm.title.trim()) {
+      const parsed = parseTelegramLink(value);
+      if (parsed.chatSlug) {
+        setCampaignForm((current) => ({ ...current, title: parsed.topicId ? `Campaign ${parsed.chatSlug}-${parsed.topicId}` : `Campaign ${parsed.chatSlug}` }));
+      }
+    }
+  };
+
+  const updateTopicField = (field: keyof typeof topicForm, value: string) => {
+    setTopicForm((current) => ({ ...current, [field]: value }));
+    if (field === 'target_link_seed' && !topicForm.name.trim()) {
+      const parsed = parseTelegramLink(value);
+      if (parsed.chatSlug) {
+        setTopicForm((current) => ({ ...current, name: parsed.topicId ? `${parsed.chatSlug}-${parsed.topicId}` : (parsed.chatSlug || '') }));
+      }
+    }
+  };
+
+  const handlePasteAndDetect = () => {
+    const pasted = window.prompt('Dán link Telegram vào đây');
+    if (!pasted) return;
+    const parsed = parseTelegramLink(pasted);
+    if (!parsed.ok) {
+      notify(parsed.detail, 'error');
+      return;
+    }
+    const intent = detectTelegramIntent(parsed);
+    if (intent === 'topic-seed') {
+      setTopicForm((current) => ({
+        ...current,
+        target_link_seed: parsed.normalized,
+        name: current.name.trim() ? current.name : suggestTelegramTitle(parsed, 'Topic'),
+      }));
+    } else if (intent === 'source') {
+      setCampaignForm((current) => ({
+        ...current,
+        source_start_link: current.source_start_link.trim() ? current.source_start_link : parsed.normalized,
+        title: current.title.trim() ? current.title : suggestTelegramTitle(parsed, 'Campaign'),
+      }));
+    } else {
+      setCampaignForm((current) => ({
+        ...current,
+        target_link: current.target_link.trim() ? current.target_link : parsed.normalized,
+        title: current.title.trim() ? current.title : suggestTelegramTitle(parsed, 'Campaign'),
+      }));
     }
   };
 
@@ -200,6 +265,7 @@ export default function TopicsPage() {
           <Typography variant="body2" color="text.secondary">Quản lý topic và tạo campaign thật từ topic đã chọn.</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" onClick={handlePasteAndDetect}>Paste & detect</Button>
           <Button variant="outlined" onClick={() => setTopicDialogOpen(true)} startIcon={<AddIcon />}>Tạo topic</Button>
           <Button variant="contained" onClick={() => setCampaignDialogOpen(true)} startIcon={<SendIcon />}>Tạo campaign</Button>
         </Box>
@@ -263,20 +329,40 @@ export default function TopicsPage() {
             >
               Tạo campaign cho topic này
             </Button>
-          </Card>
-        </Grid>
-      </Grid>
+      </Card>
+    </Grid>
+  </Grid>
 
-      <Dialog open={topicDialogOpen} onClose={() => setTopicDialogOpen(false)} fullWidth maxWidth="sm">
+  <Dialog open={topicDialogOpen} onClose={() => setTopicDialogOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Tạo topic mới</DialogTitle>
         <DialogContent dividers sx={{ display: 'grid', gap: 2, pt: 1 }}>
           <TextField select label="Group" value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)} fullWidth>
             {displayGroups.map((g) => <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>)}
           </TextField>
-          <TextField label="Tên topic" value={topicForm.name} onChange={e => setTopicForm({ ...topicForm, name: e.target.value })} fullWidth />
+          <TextField
+            label="Tên topic"
+            value={topicForm.name}
+            onChange={e => setTopicForm({ ...topicForm, name: e.target.value })}
+            fullWidth
+            helperText={topicSeedParse.ok ? `Auto-detect: ${topicSeedParse.label}` : 'Đặt tên topic rõ ràng, hoặc dán target link seed để gợi ý.'}
+          />
           <TextField label="Source topic id" value={topicForm.source_topic_id} onChange={e => setTopicForm({ ...topicForm, source_topic_id: e.target.value })} fullWidth />
           <TextField label="Target topic id" value={topicForm.target_topic_id} onChange={e => setTopicForm({ ...topicForm, target_topic_id: e.target.value })} fullWidth />
-          <TextField label="Target link seed" value={topicForm.target_link_seed} onChange={e => setTopicForm({ ...topicForm, target_link_seed: e.target.value })} fullWidth />
+          <TextField
+            label="Target link seed"
+            value={topicForm.target_link_seed}
+            onChange={e => updateTopicField('target_link_seed', e.target.value)}
+            fullWidth
+            helperText={topicSeedParse.detail}
+            error={Boolean(topicForm.target_link_seed.trim() && !topicSeedParse.ok)}
+          />
+          {topicForm.target_link_seed.trim() && (
+            <Alert severity={topicSeedParse.ok ? 'info' : 'error'} variant="outlined">
+              {topicSeedParse.ok
+                ? `Parser nhận diện: ${topicSeedParse.label}${topicSeedParse.topicId ? `, topic ${topicSeedParse.topicId}` : ''}.`
+                : `Link seed không hợp lệ: ${topicSeedParse.detail}`}
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setTopicDialogOpen(false)}>Huỷ</Button>
@@ -287,7 +373,12 @@ export default function TopicsPage() {
       <Dialog open={!!editingTopic} onClose={() => setEditingTopic(null)} fullWidth maxWidth="sm">
         <DialogTitle>Sửa topic</DialogTitle>
         <DialogContent dividers sx={{ display: 'grid', gap: 2, pt: 1 }}>
-          <TextField label="Tên topic" value={editingTopic?.name || ''} onChange={e => updateEditingTopic({ name: e.target.value })} fullWidth />
+          <TextField
+            label="Tên topic"
+            value={editingTopic?.name || ''}
+            onChange={e => updateEditingTopic({ name: e.target.value })}
+            fullWidth
+          />
           <TextField label="Source topic id" value={editingTopic?.source_topic_id || ''} onChange={e => updateEditingTopic({ source_topic_id: e.target.value ? Number(e.target.value) : null })} fullWidth />
           <TextField label="Target topic id" value={editingTopic?.target_topic_id || ''} onChange={e => updateEditingTopic({ target_topic_id: e.target.value ? Number(e.target.value) : null })} fullWidth />
           <TextField label="Target link seed" value={editingTopic?.target_link_seed || ''} onChange={e => updateEditingTopic({ target_link_seed: e.target.value })} fullWidth />
@@ -305,10 +396,55 @@ export default function TopicsPage() {
             {displayTopics.map((topic) => <MenuItem key={topic.id} value={topic.id}>{topic.name}</MenuItem>)}
           </TextField>
           <TextField label="Tên campaign" value={campaignForm.title} onChange={e => setCampaignForm({ ...campaignForm, title: e.target.value })} fullWidth />
-          <TextField label="Target link" value={campaignForm.target_link} onChange={e => setCampaignForm({ ...campaignForm, target_link: e.target.value })} fullWidth />
+          <TextField
+            label="Target link"
+            value={campaignForm.target_link}
+            onChange={e => updateCampaignField('target_link', e.target.value)}
+            fullWidth
+            helperText={campaignTargetParse.detail}
+            error={Boolean(campaignForm.target_link.trim() && !campaignTargetParse.ok)}
+          />
+          {campaignForm.target_link.trim() && (
+            <Alert severity={campaignTargetParse.kind === 'channel' || campaignTargetParse.kind === 'group' ? 'info' : 'warning'} variant="outlined">
+              {campaignTargetParse.kind === 'message' && 'Target đang là message link. Nếu bạn muốn target là channel/group, link này đang lệch loại.'}
+              {campaignTargetParse.kind === 'topic' && 'Target đang là topic/thread. Hãy chắc đây là đích bạn muốn, không phải source message.'}
+              {campaignTargetParse.kind === 'channel' || campaignTargetParse.kind === 'group' ? 'Target là root channel/group, phù hợp nếu bạn muốn đích là kênh hoặc group.' : campaignTargetParse.detail}
+            </Alert>
+          )}
+          {campaignForm.target_link.trim() && (
+            <Alert severity={campaignTargetParse.ok ? 'info' : 'error'} variant="outlined">
+              {campaignTargetParse.ok
+                ? `Target nhận diện: ${campaignTargetParse.label}${campaignTargetParse.topicId ? ` / topic ${campaignTargetParse.topicId}` : ''}.`
+                : `Target link sai format: ${campaignTargetParse.detail}`}
+            </Alert>
+          )}
           <TextField label="Caption" value={campaignForm.caption} onChange={e => setCampaignForm({ ...campaignForm, caption: e.target.value })} fullWidth multiline minRows={3} />
-          <TextField label="Source start link" value={campaignForm.source_start_link} onChange={e => setCampaignForm({ ...campaignForm, source_start_link: e.target.value })} fullWidth />
-          <TextField label="Source end link" value={campaignForm.source_end_link} onChange={e => setCampaignForm({ ...campaignForm, source_end_link: e.target.value })} fullWidth />
+          <TextField
+            label="Source start link"
+            value={campaignForm.source_start_link}
+            onChange={e => updateCampaignField('source_start_link', e.target.value)}
+            fullWidth
+            helperText={campaignSourceStartParse.detail}
+            error={Boolean(campaignForm.source_start_link.trim() && !campaignSourceStartParse.ok)}
+          />
+          <TextField
+            label="Source end link"
+            value={campaignForm.source_end_link}
+            onChange={e => updateCampaignField('source_end_link', e.target.value)}
+            fullWidth
+            helperText={campaignSourceEndParse.detail}
+            error={Boolean(campaignForm.source_end_link.trim() && !campaignSourceEndParse.ok)}
+          />
+          {(campaignTargetParse.issues.length > 0 || campaignSourceStartParse.issues.length > 0 || campaignSourceEndParse.issues.length > 0) && (
+            <Alert severity="error" variant="outlined">
+              Link topic/group đang lệch format. Cứu bằng cách dán link t.me chuẩn có message id hoặc topic id tương ứng.
+            </Alert>
+          )}
+          {autoName && !campaignForm.title.trim() && (
+            <Alert severity="info" variant="outlined">
+              Gợi ý auto-fill title: {autoName}
+            </Alert>
+          )}
           <TextField label="Batch size" type="number" value={campaignForm.batch_size} onChange={e => setCampaignForm({ ...campaignForm, batch_size: Number(e.target.value) })} fullWidth />
           <TextField label="Delay min" type="number" value={campaignForm.delay_min} onChange={e => setCampaignForm({ ...campaignForm, delay_min: Number(e.target.value) })} fullWidth />
           <TextField label="Delay max" type="number" value={campaignForm.delay_max} onChange={e => setCampaignForm({ ...campaignForm, delay_max: Number(e.target.value) })} fullWidth />

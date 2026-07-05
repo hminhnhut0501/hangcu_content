@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { fetcher, fetchApi } from '../../../lib/api';
+import { detectTelegramIntent, parseTelegramLink, suggestTelegramTitle, type TelegramLinkParse } from '../../../lib/telegram-link';
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
@@ -132,6 +133,32 @@ export default function CampaignsPage() {
     schedule_enabled: false,
     schedule_slots: '',
   });
+  const [smartLink, setSmartLink] = useState('');
+
+  const smartLinkParse = useMemo(() => parseTelegramLink(smartLink), [smartLink]);
+  const targetParse = useMemo(() => parseTelegramLink(createForm.target_link), [createForm.target_link]);
+  const sourceStartParse = useMemo(() => parseTelegramLink(createForm.source_start_link), [createForm.source_start_link]);
+  const sourceEndParse = useMemo(() => parseTelegramLink(createForm.source_end_link), [createForm.source_end_link]);
+  const smartLinkIntent = useMemo(() => detectTelegramIntent(smartLinkParse), [smartLinkParse]);
+
+  const applySmartLink = (mode: 'target' | 'source-start' | 'source-end') => {
+    if (!smartLinkParse.normalized) return;
+    if (mode === 'target') {
+      setCreateForm((current) => ({ ...current, target_link: smartLinkParse.normalized }));
+      return;
+    }
+    if (mode === 'source-start') {
+      setCreateForm((current) => ({ ...current, source_start_link: smartLinkParse.normalized }));
+      return;
+    }
+    setCreateForm((current) => ({ ...current, source_end_link: smartLinkParse.normalized }));
+  };
+
+  const applySuggestedCampaignTitle = () => {
+    const suggested = suggestTelegramTitle(smartLinkParse, 'Campaign');
+    if (!suggested) return;
+    setCreateForm((current) => current.title.trim() ? current : { ...current, title: suggested });
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xoá chiến dịch này?')) return;
@@ -207,6 +234,7 @@ export default function CampaignsPage() {
       });
       setToast({ show: true, msg: 'Tạo campaign thành công.', type: 'success' });
       setIsCreating(false);
+      setSmartLink('');
       setCreateForm({
         topic_id: '',
         title: '',
@@ -301,6 +329,7 @@ export default function CampaignsPage() {
               startIcon={<AddIcon />}
               onClick={() => {
                 setIsCreating(true);
+                setSmartLink('');
                 setCreateForm({
                   topic_id: (topics && topics[0]?.id) || '',
                   title: '',
@@ -422,6 +451,70 @@ export default function CampaignsPage() {
                   ))}
                 </TextField>
               )}
+              {isCreating && (
+                <Card variant="outlined" sx={{ borderRadius: 3, borderColor: smartLinkParse.ok && smartLinkParse.normalized ? 'success.main' : 'divider' }}>
+                  <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Smart Telegram link</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Dán link bất kỳ để parser tự nhận diện channel, group, topic, message.
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={smartLinkParse.ok ? `Detected: ${smartLinkParse.label}` : 'Waiting for link'}
+                        color={smartLinkParse.ok ? 'success' : 'default'}
+                        variant={smartLinkParse.ok ? 'filled' : 'outlined'}
+                        size="small"
+                      />
+                    </Box>
+                    <TextField
+                      label="Paste Telegram link"
+                      fullWidth
+                      value={smartLink}
+                      onChange={(e) => setSmartLink(e.target.value)}
+                      placeholder="https://t.me/channel/123 hoặc @channel"
+                      helperText={smartLinkParse.detail}
+                    />
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Chip label={smartLinkParse.kind} size="small" variant="outlined" />
+                      {smartLinkParse.chatSlug && <Chip label={`chat: ${smartLinkParse.chatSlug}`} size="small" variant="outlined" />}
+                      {smartLinkParse.messageId && <Chip label={`message: ${smartLinkParse.messageId}`} size="small" variant="outlined" />}
+                      {smartLinkParse.topicId && <Chip label={`topic: ${smartLinkParse.topicId}`} size="small" variant="outlined" />}
+                    </Box>
+                    {smartLinkParse.issues.length > 0 && (
+                      <Alert severity="warning" variant="outlined">
+                        {smartLinkParse.issues.join(' ')}
+                      </Alert>
+                    )}
+                    {smartLinkParse.suggestions.length > 0 && (
+                      <Typography variant="caption" color="text.secondary">
+                        {smartLinkParse.suggestions.join(' ')}
+                      </Typography>
+                    )}
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button size="small" variant="outlined" onClick={applySuggestedCampaignTitle} disabled={!smartLinkParse.ok || !smartLinkParse.chatSlug}>
+                        Auto title
+                      </Button>
+                      <Button size="small" variant="outlined" onClick={() => applySmartLink('target')} disabled={!smartLinkParse.ok}>
+                        Apply to Target
+                      </Button>
+                      <Button size="small" variant="outlined" onClick={() => applySmartLink('source-start')} disabled={!smartLinkParse.ok}>
+                        Apply to Source Start
+                      </Button>
+                      <Button size="small" variant="outlined" onClick={() => applySmartLink('source-end')} disabled={!smartLinkParse.ok}>
+                        Apply to Source End
+                      </Button>
+                    </Box>
+                    <Alert severity={smartLinkIntent === 'unknown' ? 'warning' : 'info'} variant="outlined">
+                      {smartLinkIntent === 'target' && 'Link này hợp với target/root channel-group. Nếu là source message hoặc topic, hãy dùng đúng ô source/topic.'}
+                      {smartLinkIntent === 'source' && 'Link này hợp với source/message. Nếu bạn định làm target channel/group, hãy kiểm tra lại.'}
+                      {smartLinkIntent === 'topic-seed' && 'Link này có vẻ là topic/thread seed. Dùng cho topic hoặc campaign bám topic là hợp nhất.'}
+                      {smartLinkIntent === 'unknown' && 'Chưa đủ dữ liệu để map vai trò. Hãy dán link đầy đủ t.me hoặc @username.'}
+                    </Alert>
+                  </CardContent>
+                </Card>
+              )}
               <TextField 
                 label="Tên chiến dịch" 
                 fullWidth 
@@ -433,12 +526,33 @@ export default function CampaignsPage() {
                 fullWidth 
                 value={isCreating ? createForm.target_link : (editingItem?.target_link || '')}
                 onChange={e => isCreating ? setCreateForm({ ...createForm, target_link: e.target.value }) : updateEditingItem({ target_link: e.target.value })}
+                helperText={isCreating ? `${targetParse.label}: ${targetParse.detail}` : undefined}
+                error={Boolean(isCreating && createForm.target_link.trim() && !targetParse.ok)}
               />
               {isCreating ? (
                 <>
                   <TextField label="Caption" fullWidth multiline minRows={3} value={createForm.caption} onChange={e => setCreateForm({ ...createForm, caption: e.target.value })} />
-                  <TextField label="Source start link" fullWidth value={createForm.source_start_link} onChange={e => setCreateForm({ ...createForm, source_start_link: e.target.value })} />
-                  <TextField label="Source end link" fullWidth value={createForm.source_end_link} onChange={e => setCreateForm({ ...createForm, source_end_link: e.target.value })} />
+                  <TextField
+                    label="Source start link"
+                    fullWidth
+                    value={createForm.source_start_link}
+                    onChange={e => setCreateForm({ ...createForm, source_start_link: e.target.value })}
+                    helperText={sourceStartParse.ok ? `${sourceStartParse.label}: ${sourceStartParse.detail}` : sourceStartParse.detail}
+                    error={Boolean(createForm.source_start_link.trim() && !sourceStartParse.ok)}
+                  />
+                  <TextField
+                    label="Source end link"
+                    fullWidth
+                    value={createForm.source_end_link}
+                    onChange={e => setCreateForm({ ...createForm, source_end_link: e.target.value })}
+                    helperText={sourceEndParse.ok ? `${sourceEndParse.label}: ${sourceEndParse.detail}` : sourceEndParse.detail}
+                    error={Boolean(createForm.source_end_link.trim() && !sourceEndParse.ok)}
+                  />
+                  {(targetParse.issues.length > 0 || sourceStartParse.issues.length > 0 || sourceEndParse.issues.length > 0) && (
+                    <Alert severity="warning" variant="outlined">
+                      Có link chưa khớp kiểu Telegram mà campaign đang cần. Hãy kiểm tra lại target/source trước khi tạo.
+                    </Alert>
+                  )}
                   <TextField label="Batch size" type="number" fullWidth value={createForm.batch_size} onChange={e => setCreateForm({ ...createForm, batch_size: Number(e.target.value) })} />
                   <TextField label="Delay min" type="number" fullWidth value={createForm.delay_min} onChange={e => setCreateForm({ ...createForm, delay_min: Number(e.target.value) })} />
                   <TextField label="Delay max" type="number" fullWidth value={createForm.delay_max} onChange={e => setCreateForm({ ...createForm, delay_max: Number(e.target.value) })} />
