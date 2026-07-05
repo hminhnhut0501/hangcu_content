@@ -120,6 +120,7 @@ async def _send_message_like(client, target_entity, message, *, default_caption:
 async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: str):
     payload = job.get("payload") or {}
     run_id = payload.get("campaign_run_id") if isinstance(payload, dict) else None
+    run_mode = str(payload.get("run_mode") or "full").strip().lower() if isinstance(payload, dict) else "full"
     target_link = str(campaign.get("target_link") or "").strip()
     if not target_link:
         raise RuntimeError("Missing target_link")
@@ -132,6 +133,8 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
     source_messages = await _load_source_messages(client, campaign)
     if not source_messages:
         raise RuntimeError("No source messages to send")
+    if run_mode in {"single", "one", "one_message", "1"}:
+        source_messages = source_messages[:1]
 
     delay_min = max(0, int(campaign.get("delay_min") or 0))
     delay_max = max(delay_min, int(campaign.get("delay_max") or delay_min))
@@ -195,6 +198,7 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
             "skipped_empty": skipped_empty,
             "last_msg_id": last_source_msg_id,
             "target_topic_id": target_topic_id,
+            "run_mode": run_mode,
         },
         campaign_id=campaign["id"],
     )
@@ -207,6 +211,7 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
         "skipped_empty": skipped_empty,
         "last_msg_id": last_source_msg_id,
         "target_topic_id": target_topic_id,
+        "run_mode": run_mode,
     }
 
 

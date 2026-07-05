@@ -45,10 +45,11 @@ def update_campaign(campaign_id: str, payload: CampaignUpdate):
 
 
 @router.post("/{campaign_id}/run", response_model=EntityResponse)
-def run_campaign(campaign_id: str):
+def run_campaign(campaign_id: str, mode: str = "full"):
     campaign = get_row("content_campaigns", campaign_id)
     if not campaign:
         raise HTTPException(status_code=404, detail="campaign_not_found")
+    run_mode = "single" if str(mode or "").strip().lower() in {"single", "one", "one_message", "1"} else "full"
     pool = get_account_pool_report()
     if int(pool.get("eligible") or 0) <= 0:
         detail = f"no_eligible_telegram_account: {pool.get('reasons') or {}}"
@@ -70,6 +71,7 @@ def run_campaign(campaign_id: str):
                 "status": "queued",
                 "queued_items": 1,
                 "selected_topic_ids": [campaign.get("topic_id")],
+                "result": {"run_mode": run_mode},
             },
             raise_error=True,
         )
@@ -102,7 +104,7 @@ def run_campaign(campaign_id: str):
                 "topic_id": campaign.get("topic_id"),
                 "status": "pending",
                 "priority": 100,
-                "payload": {"campaign_id": campaign_id, "campaign_run_id": run["id"]},
+                "payload": {"campaign_id": campaign_id, "campaign_run_id": run["id"], "run_mode": run_mode},
             },
             raise_error=True,
         )
@@ -126,7 +128,13 @@ def run_campaign(campaign_id: str):
         )
         raise HTTPException(status_code=503, detail="queue_job_insert_failed")
     update_row("content_campaigns", campaign_id, {"status": "queued", "last_run_at": now_iso()})
-    create_event("info", "campaign_queued", "Campaign queued for run", {"job_id": row["id"], "run_id": run["id"], "pool": pool}, campaign_id=campaign_id)
+    create_event(
+        "info",
+        "campaign_queued",
+        "Campaign queued for run",
+        {"job_id": row["id"], "run_id": run["id"], "pool": pool, "run_mode": run_mode},
+        campaign_id=campaign_id,
+    )
     return {"id": row["id"]}
 
 

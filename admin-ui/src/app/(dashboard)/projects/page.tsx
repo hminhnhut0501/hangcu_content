@@ -328,10 +328,10 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleRunCampaign = async (id: string) => {
+  const handleRunCampaign = async (id: string, mode: 'single' | 'full' = 'full') => {
     try {
-      await fetchApi(`/api/campaigns/${id}/run`, { method: 'POST' });
-      notify('Đã đưa campaign vào queue.', 'success');
+      await fetchApi(`/api/campaigns/${id}/run?mode=${mode}`, { method: 'POST' });
+      notify(mode === 'single' ? 'Đã queue gửi 1 tin.' : 'Đã queue gửi đến hết.', 'success');
       await mutateCampaigns();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Không thể chạy campaign.', 'error');
@@ -621,8 +621,11 @@ export default function ProjectsPage() {
                             <Chip size="small" label={campaign.status || 'draft'} />
                           </TableCell>
                           <TableCell align="right">
-                            <Button size="small" variant="outlined" sx={{ mr: 1 }} onClick={() => handleRunCampaign(campaign.id)}>
-                              Gửi 1 lượt
+                            <Button size="small" variant="outlined" sx={{ mr: 1 }} onClick={() => handleRunCampaign(campaign.id, 'single')}>
+                              Gửi 1 tin
+                            </Button>
+                            <Button size="small" variant="contained" sx={{ mr: 1 }} onClick={() => handleRunCampaign(campaign.id, 'full')}>
+                              Gửi 1 lượt đến hết
                             </Button>
                             <IconButton size="small" onClick={() => setCampaignEdit(campaign)} title="Sửa">
                               <EditIcon fontSize="small" />
