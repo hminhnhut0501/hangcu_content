@@ -6,7 +6,7 @@ from app.services.scheduler_service import enqueue_due_work
 from app.repositories.content_repo import count_rows
 from app.repositories.system_repo import list_accounts, list_logs, list_settings, recent_jobs
 from app.core.auth import require_user, require_admin
-from app.services.schema_service import build_schema_reconcile
+from app.services.schema_service import build_schema_reconcile, get_schema_reconcile_status
 
 router = APIRouter()
 
@@ -106,3 +106,8 @@ def schema_reconcile():
             "expected": {},
             "suggested_migrations": [],
         }
+
+
+@router.get("/schema/reconcile/status", dependencies=[Depends(require_user)])
+def schema_reconcile_status():
+    return get_schema_reconcile_status()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 from functools import lru_cache
 
@@ -271,6 +272,15 @@ COLUMN_SQL_TYPES: dict[tuple[str, str], str] = {
     ("audit_logs", "created_at"): "timestamptz not null default now()",
 }
 
+_LAST_SCHEMA_RECONCILE: dict[str, Any] = {
+    "ok": False,
+    "checked_at": None,
+    "db_configured": bool(settings.supabase_db_url),
+    "missing_tables": 0,
+    "missing_columns": 0,
+    "extra_columns": 0,
+}
+
 
 def _db_url() -> str:
     return settings.supabase_db_url or ""
@@ -316,7 +326,7 @@ def has_column(table: str, column: str) -> bool:
 def build_schema_reconcile() -> dict[str, Any]:
     actual = get_real_schema()
     if not actual:
-        return {
+        report = {
             "ok": False,
             "error": "schema_unavailable",
             "tables": sorted(SCHEMA_EXPECTATIONS.keys()),
@@ -326,6 +336,17 @@ def build_schema_reconcile() -> dict[str, Any]:
             "expected": {table: sorted(cols) for table, cols in SCHEMA_EXPECTATIONS.items()},
             "suggested_migrations": [],
         }
+        _LAST_SCHEMA_RECONCILE.update(
+            {
+                "ok": False,
+                "checked_at": None,
+                "db_configured": bool(settings.supabase_db_url),
+                "missing_tables": 0,
+                "missing_columns": 0,
+                "extra_columns": 0,
+            }
+        )
+        return report
     missing: dict[str, list[str]] = {}
     extra: dict[str, list[str]] = {}
     suggestions: list[dict[str, str]] = []
@@ -345,7 +366,7 @@ def build_schema_reconcile() -> dict[str, Any]:
                 )
         if extra_cols:
             extra[table] = extra_cols
-    return {
+    report = {
         "ok": True,
         "tables": sorted(SCHEMA_EXPECTATIONS.keys()),
         "missing": missing,
@@ -354,8 +375,23 @@ def build_schema_reconcile() -> dict[str, Any]:
         "expected": {table: sorted(cols) for table, cols in SCHEMA_EXPECTATIONS.items()},
         "suggested_migrations": suggestions,
     }
+    _LAST_SCHEMA_RECONCILE.update(
+        {
+            "ok": True,
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+            "db_configured": bool(settings.supabase_db_url),
+            "missing_tables": len(missing),
+            "missing_columns": sum(len(cols) for cols in missing.values()),
+            "extra_columns": sum(len(cols) for cols in extra.values()),
+        }
+    )
+    return report
 
 
 def _suggest_column_sql(table: str, column: str) -> str:
     spec = COLUMN_SQL_TYPES.get((table, column), "text")
     return f"alter table if exists {table} add column if not exists {column} {spec};"
+
+
+def get_schema_reconcile_status() -> dict[str, Any]:
+    return dict(_LAST_SCHEMA_RECONCILE)
