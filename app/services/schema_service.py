@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from typing import Any
-
-import psycopg
 from functools import lru_cache
+
+try:  # pragma: no cover - depends on local shell env
+    import psycopg
+except Exception:  # pragma: no cover
+    psycopg = None
 
 from app.core.config import settings
 
@@ -138,6 +141,136 @@ SCHEMA_EXPECTATIONS: dict[str, set[str]] = {
     "audit_logs": {"id", "actor_id", "action", "entity_type", "entity_id", "metadata", "created_at"},
 }
 
+COLUMN_SQL_TYPES: dict[tuple[str, str], str] = {
+    ("tg_accounts", "id"): "uuid primary key default gen_random_uuid()",
+    ("tg_accounts", "name"): "text not null",
+    ("tg_accounts", "api_id"): "bigint",
+    ("tg_accounts", "api_hash"): "text",
+    ("tg_accounts", "phone"): "text",
+    ("tg_accounts", "session_ref"): "text",
+    ("tg_accounts", "is_active"): "boolean not null default false",
+    ("tg_accounts", "status"): "text not null default 'unverified'",
+    ("tg_accounts", "last_checked_at"): "timestamptz",
+    ("tg_accounts", "last_error"): "text",
+    ("tg_accounts", "daily_job_limit"): "int not null default 30",
+    ("tg_accounts", "daily_job_count"): "int not null default 0",
+    ("tg_accounts", "daily_job_reset_at"): "timestamptz",
+    ("tg_accounts", "created_at"): "timestamptz not null default now()",
+    ("tg_accounts", "updated_at"): "timestamptz not null default now()",
+    ("queue_jobs", "id"): "uuid primary key default gen_random_uuid()",
+    ("queue_jobs", "job_type"): "text not null",
+    ("queue_jobs", "group_id"): "uuid",
+    ("queue_jobs", "topic_id"): "uuid",
+    ("queue_jobs", "campaign_id"): "uuid",
+    ("queue_jobs", "account_id"): "uuid references tg_accounts(id) on delete set null",
+    ("queue_jobs", "priority"): "int not null default 100",
+    ("queue_jobs", "status"): "text not null default 'pending'",
+    ("queue_jobs", "scheduled_at"): "timestamptz",
+    ("queue_jobs", "started_at"): "timestamptz",
+    ("queue_jobs", "finished_at"): "timestamptz",
+    ("queue_jobs", "attempts"): "int not null default 0",
+    ("queue_jobs", "max_attempts"): "int not null default 3",
+    ("queue_jobs", "locked_by"): "text",
+    ("queue_jobs", "locked_at"): "timestamptz",
+    ("queue_jobs", "lock_expires_at"): "timestamptz",
+    ("queue_jobs", "next_retry_at"): "timestamptz",
+    ("queue_jobs", "last_error"): "text",
+    ("queue_jobs", "payload"): "jsonb",
+    ("queue_jobs", "result"): "jsonb",
+    ("queue_jobs", "created_at"): "timestamptz not null default now()",
+    ("queue_jobs", "updated_at"): "timestamptz not null default now()",
+    ("content_groups", "id"): "uuid primary key default gen_random_uuid()",
+    ("content_groups", "name"): "text not null",
+    ("content_groups", "source_key"): "text",
+    ("content_groups", "source_link"): "text",
+    ("content_groups", "target_link"): "text",
+    ("content_groups", "auto_enabled"): "boolean not null default false",
+    ("content_groups", "auto_slots"): "text not null default ''",
+    ("content_groups", "auto_pick_count"): "int not null default 1",
+    ("content_groups", "auto_strategy"): "text not null default 'round_robin'",
+    ("content_groups", "auto_next_run_at"): "timestamptz",
+    ("content_groups", "auto_last_run_at"): "timestamptz",
+    ("content_groups", "auto_last_slot_key"): "text",
+    ("content_groups", "auto_last_result"): "text",
+    ("content_groups", "auto_last_error"): "text",
+    ("content_groups", "status"): "text not null default 'active'",
+    ("content_groups", "created_at"): "timestamptz not null default now()",
+    ("content_groups", "updated_at"): "timestamptz not null default now()",
+    ("content_topics", "id"): "uuid primary key default gen_random_uuid()",
+    ("content_topics", "group_id"): "uuid not null references content_groups(id) on delete cascade",
+    ("content_topics", "name"): "text not null",
+    ("content_topics", "source_topic_id"): "bigint",
+    ("content_topics", "target_topic_id"): "bigint",
+    ("content_topics", "target_link_seed"): "text",
+    ("content_topics", "last_msg_id"): "bigint not null default 0",
+    ("content_topics", "sort_order"): "int not null default 0",
+    ("content_topics", "status"): "text not null default 'active'",
+    ("content_topics", "created_at"): "timestamptz not null default now()",
+    ("content_topics", "updated_at"): "timestamptz not null default now()",
+    ("content_campaigns", "id"): "uuid primary key default gen_random_uuid()",
+    ("content_campaigns", "group_id"): "uuid not null references content_groups(id) on delete cascade",
+    ("content_campaigns", "topic_id"): "uuid not null references content_topics(id) on delete cascade",
+    ("content_campaigns", "title"): "text not null",
+    ("content_campaigns", "source_start_link"): "text",
+    ("content_campaigns", "source_end_link"): "text",
+    ("content_campaigns", "follow_latest"): "boolean not null default true",
+    ("content_campaigns", "target_link"): "text",
+    ("content_campaigns", "caption"): "text",
+    ("content_campaigns", "group_mode"): "text not null default 'keep'",
+    ("content_campaigns", "order_mode"): "text not null default 'auto'",
+    ("content_campaigns", "batch_size"): "int not null default 1",
+    ("content_campaigns", "delay_min"): "int not null default 1",
+    ("content_campaigns", "delay_max"): "int not null default 7",
+    ("content_campaigns", "enabled"): "boolean not null default true",
+    ("content_campaigns", "status"): "text not null default 'draft'",
+    ("content_campaigns", "schedule_enabled"): "boolean not null default false",
+    ("content_campaigns", "schedule_slots"): "text not null default ''",
+    ("content_campaigns", "next_run_at"): "timestamptz",
+    ("content_campaigns", "last_run_at"): "timestamptz",
+    ("content_campaigns", "last_result"): "text",
+    ("content_campaigns", "last_msg_id"): "bigint not null default 0",
+    ("content_campaigns", "sent_count"): "int not null default 0",
+    ("content_campaigns", "sent_units_count"): "int not null default 0",
+    ("content_campaigns", "created_at"): "timestamptz not null default now()",
+    ("content_campaigns", "updated_at"): "timestamptz not null default now()",
+    ("campaign_runs", "id"): "uuid primary key default gen_random_uuid()",
+    ("campaign_runs", "campaign_id"): "uuid not null references content_campaigns(id) on delete cascade",
+    ("campaign_runs", "slot_key"): "text not null",
+    ("campaign_runs", "scheduled_at"): "timestamptz",
+    ("campaign_runs", "status"): "text not null default 'pending'",
+    ("campaign_runs", "selected_topic_ids"): "jsonb",
+    ("campaign_runs", "queued_items"): "int not null default 0",
+    ("campaign_runs", "started_at"): "timestamptz",
+    ("campaign_runs", "finished_at"): "timestamptz",
+    ("campaign_runs", "last_error"): "text",
+    ("campaign_runs", "created_at"): "timestamptz not null default now()",
+    ("campaign_runs", "updated_at"): "timestamptz not null default now()",
+    ("content_events", "id"): "bigserial primary key",
+    ("content_events", "group_id"): "uuid",
+    ("content_events", "topic_id"): "uuid",
+    ("content_events", "campaign_id"): "uuid",
+    ("content_events", "level"): "text not null default 'info'",
+    ("content_events", "code"): "text not null default ''",
+    ("content_events", "message"): "text not null default ''",
+    ("content_events", "payload"): "jsonb",
+    ("content_events", "created_at"): "timestamptz not null default now()",
+    ("settings", "key"): "text primary key",
+    ("settings", "value"): "jsonb not null",
+    ("settings", "updated_at"): "timestamptz not null default now()",
+    ("profiles", "id"): "uuid primary key references auth.users(id) on delete cascade",
+    ("profiles", "full_name"): "text",
+    ("profiles", "role"): "text not null default 'owner'",
+    ("profiles", "created_at"): "timestamptz not null default now()",
+    ("profiles", "updated_at"): "timestamptz not null default now()",
+    ("audit_logs", "id"): "bigserial primary key",
+    ("audit_logs", "actor_id"): "uuid references auth.users(id)",
+    ("audit_logs", "action"): "text not null",
+    ("audit_logs", "entity_type"): "text not null",
+    ("audit_logs", "entity_id"): "text",
+    ("audit_logs", "metadata"): "jsonb",
+    ("audit_logs", "created_at"): "timestamptz not null default now()",
+}
+
 
 def _db_url() -> str:
     return settings.supabase_db_url or ""
@@ -147,6 +280,8 @@ def get_real_schema() -> dict[str, set[str]]:
     db_url = _db_url()
     if not db_url:
         return {}
+    if psycopg is None:
+        raise RuntimeError("psycopg is required to read schema from Supabase")
     tables = list(SCHEMA_EXPECTATIONS.keys())
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cur:
@@ -208,13 +343,5 @@ def build_schema_reconcile() -> dict[str, Any]:
 
 
 def _suggest_column_sql(table: str, column: str) -> str:
-    column_sql = {
-        "risk_reason": f"alter table if exists {table} add column if not exists {column} text;",
-        "risk_status": f"alter table if exists {table} add column if not exists {column} text not null default 'active';",
-        "last_error": f"alter table if exists {table} add column if not exists {column} text;",
-        "last_checked_at": f"alter table if exists {table} add column if not exists {column} timestamptz;",
-        "daily_job_limit": f"alter table if exists {table} add column if not exists {column} int not null default 30;",
-        "daily_job_count": f"alter table if exists {table} add column if not exists {column} int not null default 0;",
-        "daily_job_reset_at": f"alter table if exists {table} add column if not exists {column} timestamptz;",
-    }
-    return column_sql.get(column, f"alter table if exists {table} add column if not exists {column} text;")
+    spec = COLUMN_SQL_TYPES.get((table, column), "text")
+    return f"alter table if exists {table} add column if not exists {column} {spec};"
