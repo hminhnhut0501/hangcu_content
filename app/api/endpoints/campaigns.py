@@ -22,6 +22,10 @@ def create_campaign(topic_id: str, payload: CampaignCreate):
     if not topic:
         raise HTTPException(status_code=404, detail="topic_not_found")
     schedule = schedule_fields(bool(data.pop("schedule_enabled", False)), str(data.pop("schedule_slots", "") or ""))
+    target_link = str(data.get("target_link") or "").strip() or str(topic.get("target_link_seed") or "").strip()
+    if not target_link:
+        raise HTTPException(status_code=400, detail="topic_missing_target_link_seed")
+    data["target_link"] = target_link
     row = insert_row("content_campaigns", {**data, **schedule, "topic_id": topic_id, "group_id": topic["group_id"]})
     create_event("info", "campaign_created", "Campaign created", {"title": payload.title}, topic_id=topic_id, campaign_id=row["id"])
     return {"id": row["id"]}

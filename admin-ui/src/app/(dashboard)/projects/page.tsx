@@ -53,7 +53,6 @@ type CampaignRow = {
   topic_id: string;
   title: string;
   source_start_link?: string | null;
-  source_end_link?: string | null;
   target_link?: string | null;
   caption?: string | null;
   status?: string | null;
@@ -72,7 +71,6 @@ type TopicDraft = {
 type CampaignDraft = {
   title: string;
   source_start_link: string;
-  source_end_link: string;
   caption: string;
 };
 
@@ -88,7 +86,7 @@ export default function ProjectsPage() {
   const [selectedProjectId, setSelectedProjectId] = React.useState<string>('');
   const [selectedTopicId, setSelectedTopicId] = React.useState<string>('');
   const [topicDraft, setTopicDraft] = React.useState<TopicDraft>({ name: '', target_link_seed: '' });
-  const [campaignDraft, setCampaignDraft] = React.useState<CampaignDraft>({ title: '', source_start_link: '', source_end_link: '', caption: '' });
+  const [campaignDraft, setCampaignDraft] = React.useState<CampaignDraft>({ title: '', source_start_link: '', caption: '' });
   const [topicEdit, setTopicEdit] = React.useState<TopicRow | null>(null);
   const [campaignEdit, setCampaignEdit] = React.useState<CampaignRow | null>(null);
   const [pasteTarget, setPasteTarget] = React.useState<'topic' | 'campaign' | null>(null);
@@ -147,7 +145,7 @@ export default function ProjectsPage() {
     setSelectedProjectId(project.id || '');
     setSelectedTopicId('');
     setTopicDraft({ name: '', target_link_seed: '' });
-    setCampaignDraft({ title: '', source_start_link: '', source_end_link: '', caption: '' });
+    setCampaignDraft({ title: '', source_start_link: '', caption: '' });
     setWorkspaceOpen(true);
   };
 
@@ -318,13 +316,12 @@ export default function ProjectsPage() {
         body: JSON.stringify({
           title: campaignDraft.title.trim(),
           source_start_link: campaignDraft.source_start_link || null,
-          source_end_link: campaignDraft.source_end_link || null,
           caption: campaignDraft.caption || null,
           schedule_enabled: false,
         }),
       });
       notify('Đã tạo campaign con.', 'success');
-      setCampaignDraft({ title: '', source_start_link: '', source_end_link: '', caption: '' });
+      setCampaignDraft({ title: '', source_start_link: '', caption: '' });
       await mutateCampaigns();
     } catch {
       notify('Không thể tạo campaign.', 'error');
@@ -360,8 +357,6 @@ export default function ProjectsPage() {
         body: JSON.stringify({
           title: campaignEdit.title.trim(),
           source_start_link: campaignEdit.source_start_link || null,
-          source_end_link: campaignEdit.source_end_link || null,
-          target_link: campaignEdit.target_link || null,
           caption: campaignEdit.caption || null,
         }),
       });
@@ -562,7 +557,7 @@ export default function ProjectsPage() {
                     </Button>
                   </Box>
                 </Box>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                   <TextField
                     label="Topic đích"
                     value={selectedTopic?.name || ''}
@@ -576,11 +571,20 @@ export default function ProjectsPage() {
                     onChange={(e) => setCampaignDraft((current) => ({ ...current, title: e.target.value }))}
                     fullWidth
                   />
+                </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                   <TextField
                     label="Source link"
                     value={campaignDraft.source_start_link}
                     onChange={(e) => setCampaignDraft((current) => ({ ...current, source_start_link: e.target.value }))}
                     fullWidth
+                  />
+                  <TextField
+                    label="Target link"
+                    value={selectedTopic?.target_link_seed || ''}
+                    fullWidth
+                    disabled
+                    helperText={selectedTopic?.target_link_seed ? 'Target được tự lấy từ topic.' : 'Topic chưa có target link seed.'}
                   />
                 </Box>
                 <TextField
@@ -686,18 +690,6 @@ export default function ProjectsPage() {
             label="Source start link"
             value={campaignEdit?.source_start_link || ''}
             onChange={(e) => campaignEdit && setCampaignEdit({ ...campaignEdit, source_start_link: e.target.value })}
-            fullWidth
-          />
-          <TextField
-            label="Source end link"
-            value={campaignEdit?.source_end_link || ''}
-            onChange={(e) => campaignEdit && setCampaignEdit({ ...campaignEdit, source_end_link: e.target.value })}
-            fullWidth
-          />
-          <TextField
-            label="Target link"
-            value={campaignEdit?.target_link || ''}
-            onChange={(e) => campaignEdit && setCampaignEdit({ ...campaignEdit, target_link: e.target.value })}
             fullWidth
           />
           <TextField
