@@ -20,8 +20,6 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   FolderOpen,
-  Layers3,
-  Send,
   Settings,
   Activity,
   Menu as MenuIcon
@@ -65,8 +63,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 const NAVIGATION = [
   { text: 'Tổng quan', href: '/', icon: <LayoutDashboard size={20} />, badge: '369' },
   { text: 'Dự án & Kênh', href: '/projects', icon: <FolderOpen size={20} /> },
-  { text: 'Topics', href: '/topics', icon: <Layers3 size={20} /> },
-  { text: 'Chiến dịch', href: '/campaigns', icon: <Send size={20} />, badge: '12' },
   { type: 'divider', text: 'CẤU HÌNH' },
   { text: 'Hệ thống & TK', href: '/settings', icon: <Settings size={20} /> },
   { text: 'Nhật ký', href: '/logs', icon: <Activity size={20} /> },
@@ -117,10 +113,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               variant="contained" 
               size="small" 
               disableElevation
-              onClick={() => router.push('/campaigns')}
+              onClick={() => router.push('/projects')}
               sx={{ borderRadius: 4, textTransform: 'none', px: 2, fontWeight: 'bold' }}
             >
-              + Tạo chiến dịch
+              + Tạo dự án
             </Button>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 0.5, borderRadius: 4, border: '1px solid #e2e8f0', bgcolor: '#f8fafc' }}>
                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#22c55e' }} />
