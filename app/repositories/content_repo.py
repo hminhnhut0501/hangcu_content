@@ -419,44 +419,25 @@ def get_queue_job(job_id: str):
 
 
 def list_auto_groups():
-    return (
-        _client()
-        .table("content_groups")
-        .select("*")
-        .eq("auto_enabled", True)
-        .eq("status", "active")
-        .order("updated_at", desc=False)
-        .execute()
-        .data
-        or []
-    )
+    query = _client().table("content_groups").select("*").eq("auto_enabled", True).eq("status", "active")
+    if has_column("content_groups", "updated_at"):
+        query = query.order("updated_at", desc=False)
+    return query.execute().data or []
 
 
 def list_group_topics(group_id: str):
-    return (
-        _client()
-        .table("content_topics")
-        .select("*")
-        .eq("group_id", group_id)
-        .eq("status", "active")
-        .order("sort_order", desc=False)
-        .order("created_at", desc=False)
-        .execute()
-        .data
-        or []
-    )
+    query = _client().table("content_topics").select("*").eq("group_id", group_id).eq("status", "active")
+    if has_column("content_topics", "sort_order"):
+        query = query.order("sort_order", desc=False)
+    if has_column("content_topics", "created_at"):
+        query = query.order("created_at", desc=False)
+    return query.execute().data or []
 
 
 def list_group_campaigns(group_id: str):
-    return (
-        _client()
-        .table("content_campaigns")
-        .select("*")
-        .eq("group_id", group_id)
-        .eq("enabled", True)
-        .order("last_run_at", desc=False)
-        .order("created_at", desc=False)
-        .execute()
-        .data
-        or []
-    )
+    query = _client().table("content_campaigns").select("*").eq("group_id", group_id).eq("enabled", True)
+    if has_column("content_campaigns", "last_run_at"):
+        query = query.order("last_run_at", desc=False)
+    if has_column("content_campaigns", "created_at"):
+        query = query.order("created_at", desc=False)
+    return query.execute().data or []

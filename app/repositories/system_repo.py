@@ -123,7 +123,10 @@ def resume_account(account_id: str):
 
 def list_settings():
     try:
-        return _client().table("settings").select("*").order("key").execute().data or []
+        query = _client().table("settings").select("*")
+        if has_column("settings", "key"):
+            query = query.order("key")
+        return query.execute().data or []
     except Exception:
         return []
 
@@ -137,7 +140,10 @@ def upsert_setting(key: str, value: Any):
 
 def list_profiles():
     try:
-        return _client().table("profiles").select("*").order("created_at", desc=True).execute().data or []
+        query = _client().table("profiles").select("*")
+        if has_column("profiles", "created_at"):
+            query = query.order("created_at", desc=True)
+        return query.execute().data or []
     except Exception:
         return []
 
@@ -175,7 +181,9 @@ def count_profiles_by_role(role: str | None = None):
 
 def list_logs(*, entity_type: str | None = None, entity_id: str | None = None, level: str | None = None, limit: int = 100, q: str | None = None):
     try:
-        query = _client().table("content_events").select("*").order("created_at", desc=True).limit(limit)
+        query = _client().table("content_events").select("*").limit(limit)
+        if has_column("content_events", "created_at"):
+            query = query.order("created_at", desc=True)
         if entity_type == "group" and entity_id:
             query = query.eq("group_id", entity_id)
         elif entity_type == "topic" and entity_id:
@@ -193,6 +201,9 @@ def list_logs(*, entity_type: str | None = None, entity_id: str | None = None, l
 
 def recent_jobs(limit: int = 10):
     try:
-        return _client().table("queue_jobs").select("*").order("created_at", desc=True).limit(limit).execute().data or []
+        query = _client().table("queue_jobs").select("*").limit(limit)
+        if has_column("queue_jobs", "created_at"):
+            query = query.order("created_at", desc=True)
+        return query.execute().data or []
     except Exception:
         return []
