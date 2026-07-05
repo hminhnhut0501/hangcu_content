@@ -70,6 +70,27 @@ type CampaignRow = {
   created_at?: string | null;
 };
 
+type CampaignRunRow = {
+  id: string;
+  status?: string | null;
+  last_error?: string | null;
+  created_at?: string | null;
+  finished_at?: string | null;
+  result?: Record<string, unknown> | null;
+};
+
+type QueueJobRow = {
+  id: string;
+  status?: string | null;
+  last_error?: string | null;
+  created_at?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  account_id?: string | null;
+  payload?: Record<string, unknown> | null;
+  result?: Record<string, unknown> | null;
+};
+
 type TopicDraft = {
   name: string;
   target_link_seed: string;
@@ -144,6 +165,80 @@ export default function ProjectsPage() {
   }, [projectTopics, selectedProjectId, selectedTopicId, workspaceMode, workspaceOpen]);
 
   const notify = (msg: string, type: 'success' | 'error') => setToast({ show: true, msg, type });
+
+  const getLatestField = (job?: QueueJobRow, run?: CampaignRunRow) => {
+    const jobResult = (job?.result || {}) as Record<string, unknown>;
+    const runResult = (run?.result || {}) as Record<string, unknown>;
+    const value = jobResult.last_msg_id ?? runResult.last_msg_id ?? jobResult.message_id ?? runResult.message_id;
+    const num = Number(value);
+    return Number.isFinite(num) && num > 0 ? num : null;
+  };
+
+  const getAccountLabel = (job?: QueueJobRow, run?: CampaignRunRow) => {
+    const jobResult = (job?.result || {}) as Record<string, unknown>;
+    const runResult = (run?.result || {}) as Record<string, unknown>;
+    return String(
+      job?.account_id
+        || jobResult.account_id
+        || runResult.account_id
+        || '-',
+    );
+  };
+
+  const CampaignObservability = ({ campaignId, campaignStatus }: { campaignId: string; campaignStatus?: string | null }) => {
+    const { data: runs } = useSWR<CampaignRunRow[]>(`/api/runs/campaigns/${campaignId}?limit=3`, fetcher, { refreshInterval: 5000 });
+    const { data: jobs } = useSWR<QueueJobRow[]>(`/api/runs/jobs?campaign_id=${campaignId}&limit=3`, fetcher, { refreshInterval: 5000 });
+    const latestRun = runs?.[0];
+    const latestJob = jobs?.[0];
+    const runStatus = String(latestRun?.status || '').toLowerCase();
+    const jobStatus = String(latestJob?.status || '').toLowerCase();
+    const sentMsgId = getLatestField(latestJob, latestRun);
+    const accountLabel = getAccountLabel(latestJob, latestRun);
+    const errorText = latestJob?.last_error || latestRun?.last_error || '';
+
+    const flow = React.useMemo(() => {
+      if (runStatus === 'failed' || jobStatus === 'failed') {
+        return { label: 'Failed', color: 'error' as const, note: errorText || 'Job failed' };
+      }
+      if (jobStatus === 'running' || runStatus === 'running') {
+        return { label: 'Running', color: 'info' as const, note: 'Worker đang xử lý campaign này' };
+      }
+      if (jobStatus === 'pending' && campaignStatus === 'queued') {
+        return { label: 'Waiting worker', color: 'warning' as const, note: 'Đã queue, đang chờ worker claim job' };
+      }
+      if (runStatus === 'success' || jobStatus === 'success') {
+        const messageText = sentMsgId ? `Đã gửi tới message #${sentMsgId}` : 'Đã gửi xong';
+        return {
+          label: 'Sent',
+          color: 'success' as const,
+          note: accountLabel !== '-' ? `${messageText} · account ${accountLabel}` : messageText,
+        };
+      }
+      if (campaignStatus === 'queued' || campaignStatus === 'scheduled') {
+        return { label: 'Queued', color: 'warning' as const, note: 'Đã vào queue, chờ worker hoặc scheduler' };
+      }
+      return { label: 'Waiting worker', color: 'default' as const, note: 'Chưa có job rõ ràng' };
+    }, [accountLabel, campaignStatus, errorText, jobStatus, latestRun?.last_error, runStatus, sentMsgId]);
+
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, minWidth: 260 }}>
+        <Chip
+          label={flow.label}
+          size="small"
+          color={flow.color}
+          variant={flow.label === 'Waiting worker' ? 'outlined' : 'filled'}
+          sx={{ width: 'fit-content', fontSize: '0.7rem', fontWeight: 800 }}
+        />
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.5 }}>
+          {flow.note}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.5 }}>
+          Account: {accountLabel}
+          {sentMsgId ? ` · Last message: #${sentMsgId}` : ''}
+        </Typography>
+      </Box>
+    );
+  };
 
   const openCreateProject = () => {
     setWorkspaceMode('create');
@@ -683,7 +778,7 @@ export default function ProjectsPage() {
                       <TableRow>
                         <TableCell>Campaign</TableCell>
                         <TableCell>Source</TableCell>
-                        <TableCell>Trạng thái</TableCell>
+                        <TableCell>Observability</TableCell>
                         <TableCell align="right">Thao tác</TableCell>
                       </TableRow>
                     </TableHead>
@@ -700,7 +795,7 @@ export default function ProjectsPage() {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Chip size="small" label={campaign.status || 'draft'} />
+                            <CampaignObservability campaignId={campaign.id} campaignStatus={campaign.status} />
                           </TableCell>
                           <TableCell align="right">
                             <Button size="small" variant="outlined" sx={{ mr: 1 }} onClick={() => handleRunCampaign(campaign.id, 'single')}>
