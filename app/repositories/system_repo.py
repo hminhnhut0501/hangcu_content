@@ -93,7 +93,6 @@ def resume_account(account_id: str):
     payload = {
         "is_active": True,
         "risk_status": "active",
-        "risk_reason": "",
         "last_error": "",
     }
     try:

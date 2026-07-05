@@ -91,7 +91,6 @@ def pause_account_api(account_id: str, reason: str = "manual_pause"):
         {
             "is_active": False,
             "risk_status": "paused",
-            "risk_reason": reason,
         },
     )
     if not row:
