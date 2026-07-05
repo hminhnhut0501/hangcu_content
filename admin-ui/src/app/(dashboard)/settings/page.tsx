@@ -25,6 +25,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import ScienceIcon from '@mui/icons-material/Science';
+import BugReportIcon from '@mui/icons-material/BugReport';
 
 type AccountRow = {
   id: string;
@@ -64,6 +65,12 @@ export default function SettingsPage() {
   const [tabValue, setTabValue] = useState(0);
   const [toast, setToast] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'warning' }>({ show: false, msg: '', type: 'success' });
   const [selectedAccount, setSelectedAccount] = useState<AccountRow | null>(null);
+  const [schemaReport, setSchemaReport] = useState<{
+    ok?: boolean;
+    missing?: Record<string, string[]>;
+    extra?: Record<string, string[]>;
+  } | null>(null);
+  const [schemaLoading, setSchemaLoading] = useState(false);
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -194,6 +201,20 @@ export default function SettingsPage() {
       await refresh();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Không thể normalize quota.', 'error');
+    }
+  };
+
+  const runSchemaReconcile = async () => {
+    setSchemaLoading(true);
+    try {
+      const res = await fetchApi('/api/admin/schema/reconcile');
+      setSchemaReport(res as typeof schemaReport);
+      const missingTables = Object.keys((res as { missing?: Record<string, string[]> }).missing || {});
+      notify(missingTables.length ? `Schema reconcile xong, thiếu ở ${missingTables.join(', ')}` : 'Schema reconcile xong, không thiếu cột chính.', missingTables.length ? 'warning' : 'success');
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Không chạy được schema reconcile.', 'error');
+    } finally {
+      setSchemaLoading(false);
     }
   };
 
@@ -420,6 +441,40 @@ export default function SettingsPage() {
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'text.secondary' }}>
               Thiết lập vận hành an toàn. Các giá trị này sẽ được worker và scheduler đọc từ backend settings.
             </Typography>
+            <Card variant="outlined" sx={{ p: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <BugReportIcon fontSize="small" />
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Schema reconciliation
+                </Typography>
+                <Button sx={{ ml: 'auto' }} size="small" onClick={runSchemaReconcile} disabled={schemaLoading} startIcon={<SyncIcon />}>
+                  {schemaLoading ? 'Checking...' : 'Check schema'}
+                </Button>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Đọc schema thật từ backend và liệt kê cột thiếu so với code/migration.
+              </Typography>
+              {schemaReport && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Missing tables: {Object.keys(schemaReport.missing || {}).length}
+                  </Typography>
+                  {Object.entries(schemaReport.missing || {}).map(([table, columns]) => (
+                    <Box key={table} sx={{ p: 1, borderRadius: 1, border: '1px solid rgba(148,163,184,0.25)' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{table}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Missing: {columns.join(', ')}
+                      </Typography>
+                    </Box>
+                  ))}
+                  {Object.keys(schemaReport.missing || {}).length === 0 && (
+                    <Typography variant="body2" color="success.main">
+                      Không thiếu cột nào trong bộ schema đã khai báo.
+                    </Typography>
+                  )}
+                </Box>
+              )}
+            </Card>
             <TextField label="Độ trễ giữa các bài viết (Delay)" type="number" defaultValue={30} helperText="Chờ giữa các lần gửi để giảm rủi ro flood." fullWidth />
             <TextField label="Giới hạn bài viết / ngày" type="number" defaultValue={100} helperText="Giới hạn công việc theo account." fullWidth />
             <TextField label="Quản trị viên nhận thông báo (Chat ID)" type="text" defaultValue="678912345" helperText="Nơi nhận cảnh báo risk." fullWidth />
