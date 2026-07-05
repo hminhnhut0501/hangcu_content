@@ -28,6 +28,7 @@ import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { detectTelegramIntent, parseTelegramLink, suggestTelegramTitle, type TelegramLinkParse } from '../../../lib/telegram-link';
+import TelegramPasteDialog from '../../../components/TelegramPasteDialog';
 
 type GroupRow = {
   id?: string;
@@ -42,12 +43,10 @@ export default function ProjectsPage() {
   const [toast, setToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({ show: false, msg: '', type: 'success' });
   const [editingItem, setEditingItem] = useState<GroupRow | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [linkDraft, setLinkDraft] = useState('');
+  const [pasteDialogOpen, setPasteDialogOpen] = useState(false);
 
-  const linkParse = useMemo(() => parseTelegramLink(linkDraft), [linkDraft]);
   const sourceParse = useMemo(() => parseTelegramLink(editingItem?.source_link || ''), [editingItem?.source_link]);
   const targetParse = useMemo(() => parseTelegramLink(editingItem?.target_link || ''), [editingItem?.target_link]);
-  const pastedIntent = useMemo(() => detectTelegramIntent(linkParse), [linkParse]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn xoá dự án này?')) return;
@@ -95,28 +94,20 @@ export default function ProjectsPage() {
   };
 
   const displayGroups: GroupRow[] = groups || [];
-  const autoName = useMemo(() => {
-    if (linkParse.chatSlug && linkParse.kind !== 'unknown') {
-      return linkParse.topicId ? `${linkParse.chatSlug}-${linkParse.topicId}` : linkParse.chatSlug;
-    }
-    return '';
-  }, [linkParse.chatSlug, linkParse.kind, linkParse.topicId]);
-
-  const handlePasteAndDetect = () => {
-    const pasted = window.prompt('Dán link Telegram vào đây');
-    if (!pasted) return;
-    const parsed = parseTelegramLink(pasted);
-    if (!parsed.ok) {
-      setToast({ show: true, msg: parsed.detail, type: 'error' });
-      return;
-    }
+  const handlePasteApply = (payload: {
+    parsed: TelegramLinkParse;
+    title?: string;
+    targetLink?: string;
+    sourceStartLink?: string;
+    sourceEndLink?: string;
+    projectName?: string;
+  }) => {
     setIsCreating(true);
-    setLinkDraft(parsed.normalized);
     setEditingItem((current) => ({
       id: current?.id,
-      name: current?.name?.trim() ? current.name : suggestTelegramTitle(parsed, 'Project'),
-      source_link: (detectTelegramIntent(parsed) === 'source' ? parsed.normalized : current?.source_link) || parsed.normalized,
-      target_link: (detectTelegramIntent(parsed) === 'target' ? parsed.normalized : current?.target_link) || parsed.normalized,
+      name: current?.name?.trim() ? current.name : (payload.projectName || payload.title || suggestTelegramTitle(payload.parsed, 'Project')),
+      source_link: payload.sourceStartLink || (detectTelegramIntent(payload.parsed) === 'source' ? payload.parsed.normalized : current?.source_link) || payload.parsed.normalized,
+      target_link: payload.targetLink || (detectTelegramIntent(payload.parsed) === 'target' ? payload.parsed.normalized : current?.target_link) || payload.parsed.normalized,
       auto_enabled: current?.auto_enabled ?? false,
     }));
   };
@@ -128,13 +119,12 @@ export default function ProjectsPage() {
           Dự án & Kênh
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" onClick={handlePasteAndDetect}>Paste & detect</Button>
+          <Button variant="outlined" onClick={() => setPasteDialogOpen(true)}>Paste & detect</Button>
           <Button 
             variant="contained" 
             startIcon={<AddIcon />}
             onClick={() => {
               setIsCreating(true);
-              setLinkDraft('');
               setEditingItem({ name: '', source_link: '', target_link: '' });
             }}
           >
@@ -215,7 +205,7 @@ export default function ProjectsPage() {
                 required
                 value={editingItem?.name || ''}
                 onChange={e => editingItem && setEditingItem({ ...editingItem, name: e.target.value })}
-                helperText={autoName ? `Auto-detect gợi ý: ${autoName}` : 'Tên dự án nên mô tả rõ group/channel.'}
+                helperText={'Tên dự án nên mô tả rõ group/channel.'}
               />
               <TextField 
                 label="Nguồn (Source Link)" 
@@ -236,14 +226,6 @@ export default function ProjectsPage() {
               {(editingItem?.source_link?.trim() && !sourceParse.ok || editingItem?.target_link?.trim() && !targetParse.ok) && (
                 <Alert severity="error" variant="outlined">
                   Link dự án đang sai format Telegram hoặc không đủ thông tin để xác định channel/group/topic. Hãy dán link chuẩn t.me.
-                </Alert>
-              )}
-              {linkDraft && (
-                <Alert severity={pastedIntent === 'unknown' ? 'warning' : 'info'} variant="outlined">
-                  {pastedIntent === 'target' && 'Paste này hợp với đích (channel/group/root).'}
-                  {pastedIntent === 'source' && 'Paste này hợp với nguồn (message/topic).'}
-                  {pastedIntent === 'topic-seed' && 'Paste này có vẻ là topic seed.'}
-                  {pastedIntent === 'unknown' && 'Chưa map được vai trò link này.'}
                 </Alert>
               )}
               {!isCreating && (
@@ -276,6 +258,13 @@ export default function ProjectsPage() {
           {toast.msg}
         </Alert>
       </Snackbar>
+
+      <TelegramPasteDialog
+        open={pasteDialogOpen}
+        mode="project"
+        onClose={() => setPasteDialogOpen(false)}
+        onApply={handlePasteApply}
+      />
     </Box>
   );
 }

@@ -29,6 +29,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SendIcon from '@mui/icons-material/Send';
 import { detectTelegramIntent, parseTelegramLink, suggestTelegramTitle, type TelegramLinkParse } from '../../../lib/telegram-link';
+import TelegramPasteDialog from '../../../components/TelegramPasteDialog';
 
 type GroupRow = { id: string; name: string };
 type TopicRow = {
@@ -65,6 +66,7 @@ export default function TopicsPage() {
   const [editingTopic, setEditingTopic] = useState<TopicRow | null>(null);
   const [topicDialogOpen, setTopicDialogOpen] = useState(false);
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
+  const [pasteDialogOpen, setPasteDialogOpen] = useState(false);
   const [campaignTopicId, setCampaignTopicId] = useState('');
   const [topicForm, setTopicForm] = useState({ name: '', source_topic_id: '', target_topic_id: '', target_link_seed: '' });
   const [campaignForm, setCampaignForm] = useState<CampaignForm>({
@@ -152,34 +154,36 @@ export default function TopicsPage() {
     }
   };
 
-  const handlePasteAndDetect = () => {
-    const pasted = window.prompt('Dán link Telegram vào đây');
-    if (!pasted) return;
-    const parsed = parseTelegramLink(pasted);
-    if (!parsed.ok) {
-      notify(parsed.detail, 'error');
-      return;
-    }
-    const intent = detectTelegramIntent(parsed);
-    if (intent === 'topic-seed') {
+  const handlePasteApply = (payload: {
+    parsed: TelegramLinkParse;
+    title?: string;
+    targetLink?: string;
+    sourceStartLink?: string;
+    sourceEndLink?: string;
+    targetLinkSeed?: string;
+  }) => {
+    const intent = detectTelegramIntent(payload.parsed);
+    if (intent === 'topic-seed' || payload.targetLinkSeed) {
       setTopicForm((current) => ({
         ...current,
-        target_link_seed: parsed.normalized,
-        name: current.name.trim() ? current.name : suggestTelegramTitle(parsed, 'Topic'),
+        target_link_seed: payload.targetLinkSeed || payload.parsed.normalized,
+        name: current.name.trim() ? current.name : (payload.title || suggestTelegramTitle(payload.parsed, 'Topic')),
       }));
-    } else if (intent === 'source') {
-      setCampaignForm((current) => ({
-        ...current,
-        source_start_link: current.source_start_link.trim() ? current.source_start_link : parsed.normalized,
-        title: current.title.trim() ? current.title : suggestTelegramTitle(parsed, 'Campaign'),
-      }));
-    } else {
-      setCampaignForm((current) => ({
-        ...current,
-        target_link: current.target_link.trim() ? current.target_link : parsed.normalized,
-        title: current.title.trim() ? current.title : suggestTelegramTitle(parsed, 'Campaign'),
-      }));
+      return;
     }
+    if (payload.sourceStartLink || intent === 'source') {
+      setCampaignForm((current) => ({
+        ...current,
+        source_start_link: payload.sourceStartLink || payload.parsed.normalized,
+        title: current.title.trim() ? current.title : (payload.title || suggestTelegramTitle(payload.parsed, 'Campaign')),
+      }));
+      return;
+    }
+    setCampaignForm((current) => ({
+      ...current,
+      target_link: payload.targetLink || payload.parsed.normalized,
+      title: current.title.trim() ? current.title : (payload.title || suggestTelegramTitle(payload.parsed, 'Campaign')),
+    }));
   };
 
   const saveTopic = async () => {
@@ -265,7 +269,7 @@ export default function TopicsPage() {
           <Typography variant="body2" color="text.secondary">Quản lý topic và tạo campaign thật từ topic đã chọn.</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" onClick={handlePasteAndDetect}>Paste & detect</Button>
+          <Button variant="outlined" onClick={() => setPasteDialogOpen(true)}>Paste & detect</Button>
           <Button variant="outlined" onClick={() => setTopicDialogOpen(true)} startIcon={<AddIcon />}>Tạo topic</Button>
           <Button variant="contained" onClick={() => setCampaignDialogOpen(true)} startIcon={<SendIcon />}>Tạo campaign</Button>
         </Box>
@@ -477,6 +481,13 @@ export default function TopicsPage() {
       <Snackbar open={toast.show} autoHideDuration={2800} onClose={() => setToast({ ...toast, show: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <Alert severity={toast.type} variant="filled" sx={{ width: '100%' }}>{toast.msg}</Alert>
       </Snackbar>
+
+      <TelegramPasteDialog
+        open={pasteDialogOpen}
+        mode="topic"
+        onClose={() => setPasteDialogOpen(false)}
+        onApply={handlePasteApply}
+      />
     </Box>
   );
 }
