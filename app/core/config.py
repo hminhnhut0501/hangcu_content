@@ -14,6 +14,7 @@ class Settings:
     bootstrap_owner_password: str = os.getenv("BOOTSTRAP_OWNER_PASSWORD", "")
     admin_ui_url: str = os.getenv("ADMIN_UI_URL", "").rstrip("/")
     allowed_origins: str = os.getenv("ALLOWED_ORIGINS", "")
+    cron_secret: str = os.getenv("CRON_SECRET", "")
 
 
 settings = Settings()

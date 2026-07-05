@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
 from app.services.scheduler_service import enqueue_due_work
 from app.repositories.content_repo import count_rows
 from app.repositories.system_repo import list_accounts, list_logs, list_settings, recent_jobs
 from app.core.auth import require_user, require_admin
+from app.core.config import settings
 from app.services.schema_service import build_schema_reconcile, get_schema_reconcile_status
 
 router = APIRouter()
@@ -78,6 +79,21 @@ def build_health_deep_snapshot() -> dict:
 
 @router.post("/scheduler/tick", dependencies=[Depends(require_admin)])
 def scheduler_tick():
+    return enqueue_due_work()
+
+
+@router.post("/cron/tick")
+def cron_tick(
+    token: str | None = Query(default=None),
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+    x_render_cron_secret: str | None = Header(default=None, alias="X-Render-Cron-Secret"),
+):
+    expected = settings.cron_secret.strip()
+    provided = (token or x_cron_secret or x_render_cron_secret or "").strip()
+    if not expected:
+        raise HTTPException(status_code=503, detail="cron_secret_not_configured")
+    if provided != expected:
+        raise HTTPException(status_code=403, detail="invalid_cron_secret")
     return enqueue_due_work()
 
 
