@@ -20,6 +20,7 @@ import TableRow from '@mui/material/TableRow';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import Tooltip from '@mui/material/Tooltip';
 import SaveIcon from '@mui/icons-material/Save';
 import SyncIcon from '@mui/icons-material/Sync';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
@@ -235,6 +236,17 @@ export default function SettingsPage() {
 
   const activeCount = (accounts || []).filter(a => a.is_active && (a.risk_status || 'active') === 'active').length;
   const pausedCount = (accounts || []).filter(a => (a.risk_status || '') === 'paused' || !a.is_active).length;
+  const trimmedName = form.name.trim();
+  const canCreateAccount = trimmedName.length > 0;
+  const getQuotaSourceLabel = (account?: AccountRow | null) => (account?.quota_source || 'default') === 'backend' ? 'backend' : 'default';
+  const getQuotaDebugText = (account?: AccountRow | null) => {
+    if (!account) return '';
+    const source = getQuotaSourceLabel(account);
+    const limit = Number(account.daily_job_limit || 0);
+    const count = Number(account.daily_job_count || 0);
+    const effectiveLimit = limit > 0 ? limit : 30;
+    return `source=${source} limit=${effectiveLimit} count=${count}`;
+  };
 
   const getAccountBlockReason = (account: AccountRow) => {
     const riskStatus = String(account.risk_status || 'active').toLowerCase();
@@ -257,8 +269,6 @@ export default function SettingsPage() {
   const selectedBackendQuota = selectedAccount?.daily_job_limit;
   const selectedQuotaLoadedFromBackend = selectedAccount ? selectedBackendQuota !== null && selectedBackendQuota !== undefined : false;
   const selectedQuotaValue = Number(form.daily_job_limit || 0);
-  const trimmedName = form.name.trim();
-  const canCreateAccount = trimmedName.length > 0;
   const isQuotaMismatch = (account: AccountRow) => (Number(account.daily_job_limit || 0) <= 0) || (account.quota_source || 'default') !== 'backend';
 
   return (
@@ -313,7 +323,9 @@ export default function SettingsPage() {
                           <Typography variant="caption" color="text.secondary">{account.phone || account.id}</Typography>
                         </TableCell>
                         <TableCell>
-                          <Chip size="small" label={account.is_active ? 'active' : 'inactive'} color={account.is_active ? 'success' : 'default'} />
+                          <Tooltip title={account.is_active ? 'Account đang bật' : 'Account đang tắt'} arrow>
+                            <Chip size="small" label={account.is_active ? 'active' : 'inactive'} color={account.is_active ? 'success' : 'default'} />
+                          </Tooltip>
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                             is_active={String(Boolean(account.is_active))}
                           </Typography>
@@ -323,25 +335,31 @@ export default function SettingsPage() {
                             const reason = getAccountBlockReason(account);
                             return (
                               <>
-                                <Chip
-                                  size="small"
-                                  label={account.risk_status || 'active'}
-                                  color={(account.risk_status || 'active') === 'paused' ? 'warning' : (account.risk_status || 'active') === 'active' ? 'success' : 'error'}
-                                  sx={{ mr: 1 }}
-                                />
-                                <Chip
-                                  size="small"
-                                  label={reason}
-                                  color={getAccountBlockTone(reason)}
-                                  variant={reason === 'Available' ? 'outlined' : 'filled'}
-                                />
-                                <Chip
-                                  size="small"
-                                  label={`Quota source: ${(account.quota_source || 'default') === 'backend' ? 'backend' : 'default'}`}
-                                  color={(account.quota_source || 'default') === 'backend' ? 'success' : 'warning'}
-                                  variant="outlined"
-                                  sx={{ ml: 1 }}
-                                />
+                                <Tooltip title={`risk_status=${account.risk_status || 'active'}`} arrow>
+                                  <Chip
+                                    size="small"
+                                    label={account.risk_status || 'active'}
+                                    color={(account.risk_status || 'active') === 'paused' ? 'warning' : (account.risk_status || 'active') === 'active' ? 'success' : 'error'}
+                                    sx={{ mr: 1 }}
+                                  />
+                                </Tooltip>
+                                <Tooltip title={`Chặn campaign: ${reason}`} arrow>
+                                  <Chip
+                                    size="small"
+                                    label={reason}
+                                    color={getAccountBlockTone(reason)}
+                                    variant={reason === 'Available' ? 'outlined' : 'filled'}
+                                  />
+                                </Tooltip>
+                                <Tooltip title={getQuotaDebugText(account)} arrow>
+                                  <Chip
+                                    size="small"
+                                    label={`Quota source: ${getQuotaSourceLabel(account)}`}
+                                    color={getQuotaSourceLabel(account) === 'backend' ? 'success' : 'warning'}
+                                    variant="outlined"
+                                    sx={{ ml: 1 }}
+                                  />
+                                </Tooltip>
                               </>
                             );
                           })()}
@@ -391,12 +409,17 @@ export default function SettingsPage() {
                 <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(148, 163, 184, 0.25)' }}>
                   <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
                     {selectedQuotaLoadedFromBackend
-                      ? `Quota source: backend (${selectedBackendQuota})`
-                      : 'Quota source: default 30'}
+                      ? `Loaded from backend · quota source: backend (${selectedBackendQuota})`
+                      : 'Loaded from backend · quota source: default 30'}
                   </Typography>
                   <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>
                     Effective quota: {selectedQuotaValue > 0 ? selectedQuotaValue : 30}
                   </Typography>
+                  {isQuotaMismatch(selectedAccount) && (
+                    <Alert severity="warning" variant="outlined" sx={{ mt: 1 }}>
+                      Quota đang lệch so với backend. Bấm Normalize quota để đưa daily_job_limit về giá trị hợp lệ.
+                    </Alert>
+                  )}
                 </Box>
               )}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -404,8 +427,8 @@ export default function SettingsPage() {
                   label="Tên hiển thị"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
-                  error={!selectedAccount && form.name.trim().length === 0}
-                  helperText={!selectedAccount && form.name.trim().length === 0 ? 'Tên hiển thị không được để trống.' : ' '}
+                  error={trimmedName.length === 0}
+                  helperText={trimmedName.length === 0 ? 'Tên hiển thị không được để trống.' : ' '}
                   fullWidth
                 />
                 <TextField label="Phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} fullWidth />
@@ -417,17 +440,23 @@ export default function SettingsPage() {
                   type="number"
                   value={form.daily_job_limit}
                   onChange={e => setForm({ ...form, daily_job_limit: Number(e.target.value) })}
-                  helperText={selectedAccount ? 'Optional override; backend will normalize to an effective quota.' : 'Default new account value = 30'}
+                  helperText={selectedAccount
+                    ? (selectedQuotaLoadedFromBackend
+                      ? `Optional override from backend; current value ${selectedBackendQuota ?? 30}`
+                      : 'Backend chưa trả quota hợp lệ, sẽ fallback 30')
+                    : 'Default new account value = 30'}
                   fullWidth
                 />
                 {selectedAccount && (
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Chip
-                      size="small"
-                      label={`Quota source: ${(selectedAccount.quota_source || 'default') === 'backend' ? 'backend' : 'default'}`}
-                      color={(selectedAccount.quota_source || 'default') === 'backend' ? 'success' : 'warning'}
-                      variant="outlined"
-                    />
+                    <Tooltip title={getQuotaDebugText(selectedAccount)} arrow>
+                      <Chip
+                        size="small"
+                        label={`Quota source: ${getQuotaSourceLabel(selectedAccount)}`}
+                        color={getQuotaSourceLabel(selectedAccount) === 'backend' ? 'success' : 'warning'}
+                        variant="outlined"
+                      />
+                    </Tooltip>
                     <Chip
                       size="small"
                       label={`Effective quota: ${Number(selectedAccount.daily_job_limit || 30)}`}
@@ -440,7 +469,7 @@ export default function SettingsPage() {
                     variant="contained"
                     startIcon={<SaveIcon />}
                     onClick={createOrUpdateAccount}
-                    disabled={!selectedAccount ? !canCreateAccount : false}
+                    disabled={!canCreateAccount}
                   >
                     {selectedAccount ? 'Save changes' : 'Create account'}
                   </Button>

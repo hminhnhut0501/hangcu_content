@@ -10,6 +10,7 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CircularProgress from "@mui/material/CircularProgress";
 import Chip from "@mui/material/Chip";
+import Tooltip from "@mui/material/Tooltip";
 
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -112,6 +113,9 @@ export default function Dashboard() {
     return 'default';
   };
   const schemaMismatchCount = Object.keys(schemaReconcile?.missing || {}).length;
+  const safeAccounts = Number(health?.safety?.active_accounts || 0);
+  const pausedAccounts = Number(health?.safety?.paused_accounts || 0);
+  const riskyAccounts = Number(health?.safety?.risky_accounts || 0);
 
   return (
     <Box>
@@ -134,6 +138,11 @@ export default function Dashboard() {
             <Typography variant="body2" sx={{ color: '#fecaca', mt: 0.5 }}>
               Có {schemaMismatchCount} bảng đang thiếu cột so với code/migration. Vào Settings để xem chi tiết và export report.
             </Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1.5 }}>
+              {Object.entries(schemaReconcile?.missing || {}).slice(0, 4).map(([table, columns]) => (
+                <Chip key={table} label={`${table}: ${columns.length} missing`} size="small" variant="outlined" sx={{ color: '#fecaca', borderColor: 'rgba(252, 165, 165, 0.35)' }} />
+              ))}
+            </Box>
           </CardContent>
         </Card>
       )}
@@ -201,14 +210,22 @@ export default function Dashboard() {
                 </Box>
               </Box>
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                <Chip
-                  label={`Worker: ${workerBadge}`}
-                  color={workerBadge === 'down' ? 'error' : workerBadge === 'alive' ? 'success' : workerBadge === 'idle' ? 'info' : 'default'}
-                  variant="filled"
-                />
-                <Chip label={`worker raw: ${workerStatus}`} color={statusTone(workerStatus)} variant="outlined" />
-                <Chip label={`scheduler: ${schedulerStatus}`} color={statusTone(schedulerStatus)} />
-                <Chip label={`accounts: ${health?.counts?.accounts ?? 0}`} variant="outlined" />
+                <Tooltip title={workerBadgeReason} arrow>
+                  <Chip
+                    label={`Worker: ${workerBadge}`}
+                    color={workerBadge === 'down' ? 'error' : workerBadge === 'alive' ? 'success' : workerBadge === 'idle' ? 'info' : 'default'}
+                    variant="filled"
+                  />
+                </Tooltip>
+                <Tooltip title={`raw=${workerStatus} · heartbeat ${workerHeartbeatAgeLabel}`} arrow>
+                  <Chip label={`worker raw: ${workerStatus}`} color={statusTone(workerStatus)} variant="outlined" />
+                </Tooltip>
+                <Tooltip title={`scheduler=${schedulerStatus}`} arrow>
+                  <Chip label={`scheduler: ${schedulerStatus}`} color={statusTone(schedulerStatus)} />
+                </Tooltip>
+                <Tooltip title={`accounts total=${health?.counts?.accounts ?? 0}`} arrow>
+                  <Chip label={`accounts: ${health?.counts?.accounts ?? 0}`} variant="outlined" />
+                </Tooltip>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.6 }}>
                 {workerBadgeReason}
@@ -224,12 +241,19 @@ export default function Dashboard() {
                 </Box>
                 <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8fafc' }}>
                   <Typography variant="caption" color="text.secondary">Active accounts</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{health?.safety?.active_accounts ?? 0}</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{safeAccounts}</Typography>
                 </Box>
                 <Box sx={{ p: 2, borderRadius: 3, bgcolor: '#f8fafc' }}>
                   <Typography variant="caption" color="text.secondary">Paused / risky</Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{(health?.safety?.paused_accounts ?? 0) + (health?.safety?.risky_accounts ?? 0)}</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>{pausedAccounts + riskyAccounts}</Typography>
                 </Box>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2 }}>
+                <Chip label={`active ${safeAccounts}`} color="success" variant="outlined" />
+                <Chip label={`paused ${pausedAccounts}`} color="warning" variant="outlined" />
+                <Chip label={`risky ${riskyAccounts}`} color="error" variant="outlined" />
+                <Chip label={`pending ${pendingJobs}`} variant="outlined" />
+                <Chip label={`running ${runningJobs}`} variant="outlined" />
               </Box>
               <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                 <ShieldIcon fontSize="small" />
