@@ -11,26 +11,35 @@ if str(ROOT) not in sys.path:
 from app.services.schema_service import build_schema_reconcile
 
 
+def _build_sql(report: dict) -> str:
+    lines: list[str] = []
+    lines.append("-- Schema reconciliation dry-run")
+    lines.append("-- Missing tables: " + (", ".join(sorted((report.get("missing") or {}).keys())) or "none"))
+    lines.append("")
+    suggestions = report.get("suggested_migrations") or []
+    if not suggestions:
+        lines.append("-- No migration SQL needed.")
+    else:
+        for item in suggestions:
+            table = item.get("table", "unknown")
+            column = item.get("column", "unknown")
+            sql = item.get("sql", "")
+            lines.append(f"-- {table}.{column}")
+            lines.append(sql)
+            lines.append("")
+    lines.append("-- Full report JSON")
+    lines.append(json.dumps(report, indent=2, ensure_ascii=False))
+    lines.append("")
+    return "\n".join(lines)
+
+
 def main() -> int:
     report = build_schema_reconcile()
-    suggestions = report.get("suggested_migrations") or []
-    print("-- Schema reconciliation dry-run")
-    print("-- Missing tables:", ", ".join(sorted((report.get("missing") or {}).keys())) or "none")
-    print()
-    if not suggestions:
-        print("-- No migration SQL needed.")
-        return 0
-
-    for item in suggestions:
-        table = item.get("table", "unknown")
-        column = item.get("column", "unknown")
-        sql = item.get("sql", "")
-        print(f"-- {table}.{column}")
-        print(sql)
-        print()
-
-    print("-- Full report JSON")
-    print(json.dumps(report, indent=2, ensure_ascii=False))
+    output = _build_sql(report)
+    out_path = ROOT / "schema_dry_run.sql"
+    out_path.write_text(output, encoding="utf-8")
+    print(output)
+    print(f"-- Wrote {out_path}")
     return 0
 
 
