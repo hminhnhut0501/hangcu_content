@@ -31,6 +31,7 @@ import TextField from '@mui/material/TextField';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import MenuItem from '@mui/material/MenuItem';
+import TelegramPasteDialog from '../../../components/TelegramPasteDialog';
 
 import SendIcon from '@mui/icons-material/Send';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
@@ -117,6 +118,8 @@ export default function CampaignsPage() {
   const [toast, setToast] = useState<{show: boolean, msg: string, type: 'success' | 'error'}>({ show: false, msg: '', type: 'success' });
   const [editingItem, setEditingItem] = useState<CampaignRow | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [pasteDialogOpen, setPasteDialogOpen] = useState(false);
+  const [campaignMode, setCampaignMode] = useState<'auto' | 'direct_relay' | 'source_to_topic' | 'topic_to_topic' | 'watch_latest'>('auto');
   const [createForm, setCreateForm] = useState({
     topic_id: '',
     title: '',
@@ -140,6 +143,40 @@ export default function CampaignsPage() {
   const sourceStartParse = useMemo(() => parseTelegramLink(createForm.source_start_link), [createForm.source_start_link]);
   const sourceEndParse = useMemo(() => parseTelegramLink(createForm.source_end_link), [createForm.source_end_link]);
   const smartLinkIntent = useMemo(() => detectTelegramIntent(smartLinkParse), [smartLinkParse]);
+  const modeGuide = useMemo(() => {
+    switch (campaignMode) {
+      case 'direct_relay':
+        return {
+          title: 'Direct relay',
+          body: 'Dán target/channel/group đích vào Target Link. Source optional nếu muốn bám thêm luồng nguồn.',
+          color: 'info' as const,
+        };
+      case 'source_to_topic':
+        return {
+          title: 'Source to topic',
+          body: 'Target Link sẽ được hiểu như topic/topic seed. Phù hợp khi cần gửi từ nguồn sang topic cụ thể.',
+          color: 'warning' as const,
+        };
+      case 'topic_to_topic':
+        return {
+          title: 'Topic to topic',
+          body: 'Dùng khi cần map topic sang topic khác, ưu tiên dán link topic seed ở mục phù hợp.',
+          color: 'info' as const,
+        };
+      case 'watch_latest':
+        return {
+          title: 'Watch latest',
+          body: 'Bám source và theo dõi bài mới, ưu tiên Source start/end link.',
+          color: 'success' as const,
+        };
+      default:
+        return {
+          title: 'Auto detect',
+          body: 'Parser sẽ tự đoán target/source/topic từ link bạn dán rồi đẩy vào field phù hợp.',
+          color: 'info' as const,
+        };
+    }
+  }, [campaignMode]);
 
   const applySmartLink = (mode: 'target' | 'source-start' | 'source-end') => {
     if (!smartLinkParse.normalized) return;
@@ -158,6 +195,42 @@ export default function CampaignsPage() {
     const suggested = suggestTelegramTitle(smartLinkParse, 'Campaign');
     if (!suggested) return;
     setCreateForm((current) => current.title.trim() ? current : { ...current, title: suggested });
+  };
+
+  const handlePasteApply = (payload: {
+    parsed: TelegramLinkParse;
+    role: 'auto' | 'source' | 'target' | 'topic';
+    title?: string;
+    targetLink?: string;
+    sourceStartLink?: string;
+    sourceEndLink?: string;
+    targetLinkSeed?: string;
+  }) => {
+    setIsCreating(true);
+    if (payload.role === 'topic' || payload.targetLinkSeed) {
+      setCampaignMode('source_to_topic');
+      setCreateForm((current) => ({
+        ...current,
+        title: current.title.trim() ? current.title : (payload.title || suggestTelegramTitle(payload.parsed, 'Campaign')),
+        target_link: payload.targetLinkSeed || payload.parsed.normalized,
+      }));
+      return;
+    }
+    if (payload.role === 'source') {
+      setCampaignMode('watch_latest');
+      setCreateForm((current) => ({
+        ...current,
+        title: current.title.trim() ? current.title : (payload.title || suggestTelegramTitle(payload.parsed, 'Campaign')),
+        source_start_link: payload.sourceStartLink || payload.parsed.normalized,
+      }));
+      return;
+    }
+    setCampaignMode('direct_relay');
+    setCreateForm((current) => ({
+      ...current,
+      title: current.title.trim() ? current.title : (payload.title || suggestTelegramTitle(payload.parsed, 'Campaign')),
+      target_link: payload.targetLink || payload.parsed.normalized,
+    }));
   };
 
   const handleDelete = async (id: string) => {
@@ -330,6 +403,7 @@ export default function CampaignsPage() {
               onClick={() => {
                 setIsCreating(true);
                 setSmartLink('');
+                setCampaignMode('auto');
                 setCreateForm({
                   topic_id: (topics && topics[0]?.id) || '',
                   title: '',
@@ -346,11 +420,12 @@ export default function CampaignsPage() {
                   schedule_enabled: false,
                   schedule_slots: '',
                 });
-              }}
+                }}
               sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 'bold', px: 3, bgcolor: '#0088ff' }}
             >
               Tạo campaign
             </Button>
+            <Button variant="outlined" onClick={() => setPasteDialogOpen(true)}>Paste & detect</Button>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Chip label={`Campaign: ${displayCampaigns.length}`} size="small" sx={{ bgcolor: '#f1f5f9', fontWeight: 'bold' }} />
@@ -450,6 +525,28 @@ export default function CampaignsPage() {
                     <MenuItem key={topic.id} value={topic.id}>{topic.name}</MenuItem>
                   ))}
                 </TextField>
+              )}
+              {isCreating && (
+                <TextField
+                  select
+                  label="Campaign mode"
+                  fullWidth
+                  value={campaignMode}
+                  onChange={e => setCampaignMode(e.target.value as typeof campaignMode)}
+                  helperText="Auto sẽ tự gợi ý theo link bạn dán."
+                >
+                  <MenuItem value="auto">Auto detect</MenuItem>
+                  <MenuItem value="direct_relay">Direct relay</MenuItem>
+                  <MenuItem value="source_to_topic">Source to topic</MenuItem>
+                  <MenuItem value="topic_to_topic">Topic to topic</MenuItem>
+                  <MenuItem value="watch_latest">Watch latest</MenuItem>
+                  </TextField>
+              )}
+              {isCreating && (
+                <Alert severity={modeGuide.color} variant="outlined" sx={{ borderRadius: 3 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{modeGuide.title}</Typography>
+                  <Typography variant="body2">{modeGuide.body}</Typography>
+                </Alert>
               )}
               {isCreating && (
                 <Card variant="outlined" sx={{ borderRadius: 3, borderColor: smartLinkParse.ok && smartLinkParse.normalized ? 'success.main' : 'divider' }}>
@@ -620,6 +717,13 @@ export default function CampaignsPage() {
           {toast.msg}
         </Alert>
       </Snackbar>
+
+      <TelegramPasteDialog
+        open={pasteDialogOpen}
+        mode="campaign"
+        onClose={() => setPasteDialogOpen(false)}
+        onApply={handlePasteApply}
+      />
     </Box>
   );
 }

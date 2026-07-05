@@ -41,22 +41,6 @@ type TopicRow = {
   target_link_seed?: string | null;
   sort_order?: number | null;
 };
-type CampaignForm = {
-  title: string;
-  target_link: string;
-  caption: string;
-  source_start_link: string;
-  source_end_link: string;
-  follow_latest: boolean;
-  group_mode: string;
-  order_mode: string;
-  batch_size: number;
-  delay_min: number;
-  delay_max: number;
-  schedule_enabled: boolean;
-  schedule_slots: string;
-};
-
 
 export default function TopicsPage() {
   const { data: groups } = useSWR('/api/groups?limit=100', fetcher);
@@ -65,25 +49,8 @@ export default function TopicsPage() {
   const [selectedTopicId, setSelectedTopicId] = useState('');
   const [editingTopic, setEditingTopic] = useState<TopicRow | null>(null);
   const [topicDialogOpen, setTopicDialogOpen] = useState(false);
-  const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
   const [pasteDialogOpen, setPasteDialogOpen] = useState(false);
-  const [campaignTopicId, setCampaignTopicId] = useState('');
   const [topicForm, setTopicForm] = useState({ name: '', source_topic_id: '', target_topic_id: '', target_link_seed: '' });
-  const [campaignForm, setCampaignForm] = useState<CampaignForm>({
-    title: '',
-    target_link: '',
-    caption: '',
-    source_start_link: '',
-    source_end_link: '',
-    follow_latest: true,
-    group_mode: 'keep',
-    order_mode: 'auto',
-    batch_size: 1,
-    delay_min: 1,
-    delay_max: 7,
-    schedule_enabled: false,
-    schedule_slots: '',
-  });
   const [toast, setToast] = useState({ show: false, msg: '', type: 'success' as 'success' | 'error' });
 
   const displayGroups: GroupRow[] = groups || [];
@@ -95,18 +62,12 @@ export default function TopicsPage() {
 
   const selectedTopic = displayTopics.find((topic) => topic.id === selectedTopicId) || displayTopics[0] || null;
   const topicSeedParse = useMemo(() => parseTelegramLink(topicForm.target_link_seed), [topicForm.target_link_seed]);
-  const campaignTargetParse = useMemo(() => parseTelegramLink(campaignForm.target_link), [campaignForm.target_link]);
-  const campaignSourceStartParse = useMemo(() => parseTelegramLink(campaignForm.source_start_link), [campaignForm.source_start_link]);
-  const campaignSourceEndParse = useMemo(() => parseTelegramLink(campaignForm.source_end_link), [campaignForm.source_end_link]);
   const autoName = useMemo(() => {
     if (topicSeedParse.chatSlug && topicSeedParse.kind !== 'unknown') {
       return topicSeedParse.topicId ? `${topicSeedParse.chatSlug}-${topicSeedParse.topicId}` : topicSeedParse.chatSlug;
     }
-    if (campaignTargetParse.chatSlug && campaignTargetParse.kind !== 'unknown') {
-      return campaignTargetParse.topicId ? `${campaignTargetParse.chatSlug}-${campaignTargetParse.topicId}` : campaignTargetParse.chatSlug;
-    }
     return '';
-  }, [campaignTargetParse.chatSlug, campaignTargetParse.kind, campaignTargetParse.topicId, topicSeedParse.chatSlug, topicSeedParse.kind, topicSeedParse.topicId]);
+  }, [topicSeedParse.chatSlug, topicSeedParse.kind, topicSeedParse.topicId]);
 
   const notify = (msg: string, type: 'success' | 'error') => setToast({ show: true, msg, type });
   const updateEditingTopic = (patch: Partial<TopicRow>) => {
@@ -129,16 +90,6 @@ export default function TopicsPage() {
       notify('Đã tạo topic mới.', 'success');
     } catch {
       notify('Không thể tạo topic.', 'error');
-    }
-  };
-
-  const updateCampaignField = (field: keyof CampaignForm, value: string | number | boolean) => {
-    setCampaignForm((current) => ({ ...current, [field]: value } as CampaignForm));
-    if (field === 'target_link' && typeof value === 'string' && !campaignForm.title.trim()) {
-      const parsed = parseTelegramLink(value);
-      if (parsed.chatSlug) {
-        setCampaignForm((current) => ({ ...current, title: parsed.topicId ? `Campaign ${parsed.chatSlug}-${parsed.topicId}` : `Campaign ${parsed.chatSlug}` }));
-      }
     }
   };
 
@@ -170,17 +121,17 @@ export default function TopicsPage() {
       return;
     }
     if (payload.sourceStartLink || intent === 'source') {
-      setCampaignForm((current) => ({
+      setTopicForm((current) => ({
         ...current,
-        source_start_link: payload.sourceStartLink || payload.parsed.normalized,
-        title: current.title.trim() ? current.title : (payload.title || suggestTelegramTitle(payload.parsed, 'Campaign')),
+        name: current.name.trim() ? current.name : (payload.title || suggestTelegramTitle(payload.parsed, 'Topic')),
+        target_link_seed: current.target_link_seed.trim() ? current.target_link_seed : (payload.targetLinkSeed || payload.parsed.normalized),
       }));
       return;
     }
-    setCampaignForm((current) => ({
+    setTopicForm((current) => ({
       ...current,
-      target_link: payload.targetLink || payload.parsed.normalized,
-      title: current.title.trim() ? current.title : (payload.title || suggestTelegramTitle(payload.parsed, 'Campaign')),
+      target_link_seed: payload.targetLinkSeed || payload.parsed.normalized,
+      name: current.name.trim() ? current.name : (payload.title || suggestTelegramTitle(payload.parsed, 'Topic')),
     }));
   };
 
@@ -214,49 +165,6 @@ export default function TopicsPage() {
     }
   };
 
-  const createCampaign = async () => {
-    if (!campaignTopicId || !campaignForm.title.trim()) return;
-    try {
-      await fetchApi(`/api/campaigns/topics/${campaignTopicId}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          title: campaignForm.title,
-          target_link: campaignForm.target_link || null,
-          caption: campaignForm.caption || null,
-          source_start_link: campaignForm.source_start_link || null,
-          source_end_link: campaignForm.source_end_link || null,
-          follow_latest: campaignForm.follow_latest,
-          group_mode: campaignForm.group_mode,
-          order_mode: campaignForm.order_mode,
-          batch_size: Number(campaignForm.batch_size || 1),
-          delay_min: Number(campaignForm.delay_min || 1),
-          delay_max: Number(campaignForm.delay_max || 7),
-          schedule_enabled: campaignForm.schedule_enabled,
-          schedule_slots: campaignForm.schedule_slots,
-        }),
-      });
-      setCampaignDialogOpen(false);
-      setCampaignForm({
-        title: '',
-        target_link: '',
-        caption: '',
-        source_start_link: '',
-        source_end_link: '',
-        follow_latest: true,
-        group_mode: 'keep',
-        order_mode: 'auto',
-        batch_size: 1,
-        delay_min: 1,
-        delay_max: 7,
-        schedule_enabled: false,
-        schedule_slots: '',
-      });
-      notify('Đã tạo campaign.', 'success');
-    } catch {
-      notify('Không thể tạo campaign.', 'error');
-    }
-  };
-
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -267,7 +175,6 @@ export default function TopicsPage() {
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button variant="outlined" onClick={() => setPasteDialogOpen(true)}>Paste & detect</Button>
           <Button variant="outlined" onClick={() => setTopicDialogOpen(true)} startIcon={<AddIcon />}>Tạo topic</Button>
-          <Button variant="contained" onClick={() => setCampaignDialogOpen(true)} startIcon={<SendIcon />}>Tạo campaign</Button>
         </Box>
       </Box>
       <Grid container spacing={3}>
@@ -315,20 +222,11 @@ export default function TopicsPage() {
           <Card sx={{ p: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>Topic workspace</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {selectedTopic ? `Đang chọn ${selectedTopic.name}` : 'Chọn một topic để tiếp tục tạo campaign.'}
+              {selectedTopic ? `Đang chọn ${selectedTopic.name}` : 'Chọn một topic để xem thông tin.'}
             </Typography>
-            <Button
-              variant="contained"
-              onClick={() => {
-                if (selectedTopic) {
-                  setCampaignTopicId(selectedTopic.id);
-                  setCampaignDialogOpen(true);
-                }
-              }}
-              disabled={!selectedTopic}
-            >
-              Tạo campaign cho topic này
-            </Button>
+            <Alert severity="info" variant="outlined">
+              Topics chỉ giữ tên và target link seed. Builder campaign đã được tách sang màn Campaign để tránh lẫn luồng.
+            </Alert>
       </Card>
     </Grid>
   </Grid>
@@ -382,94 +280,6 @@ export default function TopicsPage() {
         <DialogActions>
           <Button onClick={() => setEditingTopic(null)}>Huỷ</Button>
           <Button onClick={saveTopic} variant="contained">Lưu topic</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={campaignDialogOpen} onClose={() => setCampaignDialogOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Tạo campaign mới</DialogTitle>
-        <DialogContent dividers sx={{ display: 'grid', gap: 2, pt: 1 }}>
-          <TextField select label="Topic đích" value={campaignTopicId} onChange={e => setCampaignTopicId(e.target.value)} fullWidth>
-            {displayTopics.map((topic) => <MenuItem key={topic.id} value={topic.id}>{topic.name}</MenuItem>)}
-          </TextField>
-          <TextField label="Tên campaign" value={campaignForm.title} onChange={e => setCampaignForm({ ...campaignForm, title: e.target.value })} fullWidth />
-          <Alert severity="info" variant="outlined">
-            Campaign builder ở đây sẽ được refactor tiếp theo hướng smart mode. Hiện tại bạn có thể chọn topic đích, rồi dán link nguồn/đích nếu cần.
-          </Alert>
-          <TextField
-            label="Target link"
-            value={campaignForm.target_link}
-            onChange={e => updateCampaignField('target_link', e.target.value)}
-            fullWidth
-            helperText={campaignTargetParse.detail}
-            error={Boolean(campaignForm.target_link.trim() && !campaignTargetParse.ok)}
-          />
-          {campaignForm.target_link.trim() && (
-            <Alert severity={campaignTargetParse.kind === 'channel' || campaignTargetParse.kind === 'group' ? 'info' : 'warning'} variant="outlined">
-              {campaignTargetParse.kind === 'message' && 'Target đang là message link. Nếu bạn muốn target là channel/group, link này đang lệch loại.'}
-              {campaignTargetParse.kind === 'topic' && 'Target đang là topic/thread. Hãy chắc đây là đích bạn muốn, không phải source message.'}
-              {campaignTargetParse.kind === 'channel' || campaignTargetParse.kind === 'group' ? 'Target là root channel/group, phù hợp nếu bạn muốn đích là kênh hoặc group.' : campaignTargetParse.detail}
-            </Alert>
-          )}
-          {campaignForm.target_link.trim() && (
-            <Alert severity={campaignTargetParse.ok ? 'info' : 'error'} variant="outlined">
-              {campaignTargetParse.ok
-                ? `Target nhận diện: ${campaignTargetParse.label}${campaignTargetParse.topicId ? ` / topic ${campaignTargetParse.topicId}` : ''}.`
-                : `Target link sai format: ${campaignTargetParse.detail}`}
-            </Alert>
-          )}
-          <TextField label="Caption" value={campaignForm.caption} onChange={e => setCampaignForm({ ...campaignForm, caption: e.target.value })} fullWidth multiline minRows={3} />
-          <TextField
-            label="Source start link"
-            value={campaignForm.source_start_link}
-            onChange={e => updateCampaignField('source_start_link', e.target.value)}
-            fullWidth
-            helperText={campaignSourceStartParse.detail}
-            error={Boolean(campaignForm.source_start_link.trim() && !campaignSourceStartParse.ok)}
-          />
-          <TextField
-            label="Source end link"
-            value={campaignForm.source_end_link}
-            onChange={e => updateCampaignField('source_end_link', e.target.value)}
-            fullWidth
-            helperText={campaignSourceEndParse.detail}
-            error={Boolean(campaignForm.source_end_link.trim() && !campaignSourceEndParse.ok)}
-          />
-          {(campaignTargetParse.issues.length > 0 || campaignSourceStartParse.issues.length > 0 || campaignSourceEndParse.issues.length > 0) && (
-            <Alert severity="error" variant="outlined">
-              Link topic/group đang lệch format. Cứu bằng cách dán link t.me chuẩn có message id hoặc topic id tương ứng.
-            </Alert>
-          )}
-          {autoName && !campaignForm.title.trim() && (
-            <Alert severity="info" variant="outlined">
-              Gợi ý auto-fill title: {autoName}
-            </Alert>
-          )}
-          <TextField label="Batch size" type="number" value={campaignForm.batch_size} onChange={e => setCampaignForm({ ...campaignForm, batch_size: Number(e.target.value) })} fullWidth />
-          <TextField label="Delay min" type="number" value={campaignForm.delay_min} onChange={e => setCampaignForm({ ...campaignForm, delay_min: Number(e.target.value) })} fullWidth />
-          <TextField label="Delay max" type="number" value={campaignForm.delay_max} onChange={e => setCampaignForm({ ...campaignForm, delay_max: Number(e.target.value) })} fullWidth />
-          <TextField label="Schedule slots" value={campaignForm.schedule_slots} onChange={e => setCampaignForm({ ...campaignForm, schedule_slots: e.target.value })} fullWidth placeholder="09:00,13:30" />
-          <TextField select label="Group mode" value={campaignForm.group_mode} onChange={e => setCampaignForm({ ...campaignForm, group_mode: e.target.value })} fullWidth>
-            <MenuItem value="keep">keep</MenuItem>
-            <MenuItem value="merge">merge</MenuItem>
-            <MenuItem value="rotate">rotate</MenuItem>
-          </TextField>
-          <TextField select label="Order mode" value={campaignForm.order_mode} onChange={e => setCampaignForm({ ...campaignForm, order_mode: e.target.value })} fullWidth>
-            <MenuItem value="auto">auto</MenuItem>
-            <MenuItem value="newest">newest</MenuItem>
-            <MenuItem value="oldest">oldest</MenuItem>
-          </TextField>
-          <TextField select label="Follow latest" value={campaignForm.follow_latest ? 'true' : 'false'} onChange={e => setCampaignForm({ ...campaignForm, follow_latest: e.target.value === 'true' })} fullWidth>
-            <MenuItem value="true">Bật</MenuItem>
-            <MenuItem value="false">Tắt</MenuItem>
-          </TextField>
-          <TextField select label="Auto schedule" value={campaignForm.schedule_enabled ? 'true' : 'false'} onChange={e => setCampaignForm({ ...campaignForm, schedule_enabled: e.target.value === 'true' })} fullWidth>
-            <MenuItem value="true">Bật</MenuItem>
-            <MenuItem value="false">Tắt</MenuItem>
-          </TextField>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCampaignDialogOpen(false)}>Huỷ</Button>
-          <Button onClick={createCampaign} variant="contained">Lưu campaign</Button>
         </DialogActions>
       </Dialog>
 

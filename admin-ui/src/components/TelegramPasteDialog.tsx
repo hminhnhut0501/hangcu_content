@@ -9,11 +9,13 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
+import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { detectTelegramIntent, parseTelegramLink, suggestTelegramTitle, type TelegramLinkParse } from '../lib/telegram-link';
 
 type PasteMode = 'campaign' | 'topic' | 'project';
+type PasteRole = 'auto' | 'source' | 'target' | 'topic';
 
 type Props = {
   open: boolean;
@@ -21,6 +23,7 @@ type Props = {
   onClose: () => void;
   onApply: (payload: {
     parsed: TelegramLinkParse;
+    role: PasteRole;
     title?: string;
     targetLink?: string;
     sourceStartLink?: string;
@@ -32,12 +35,16 @@ type Props = {
 
 export default function TelegramPasteDialog({ open, mode, onClose, onApply }: Props) {
   const [draft, setDraft] = React.useState('');
+  const [role, setRole] = React.useState<PasteRole>('auto');
   const parsed = React.useMemo(() => parseTelegramLink(draft), [draft]);
   const intent = React.useMemo(() => detectTelegramIntent(parsed), [parsed]);
 
   React.useEffect(() => {
     if (open) setDraft('');
+    if (open) setRole('auto');
   }, [open]);
+
+  const resolvedRole: PasteRole = role === 'auto' ? (intent === 'topic-seed' ? 'topic' : intent === 'source' ? 'source' : 'target') : role;
 
   const resolvePayload = () => {
     if (!parsed.ok) return null;
@@ -45,6 +52,7 @@ export default function TelegramPasteDialog({ open, mode, onClose, onApply }: Pr
     if (mode === 'topic') {
       return {
         parsed,
+        role: resolvedRole,
         title,
         targetLinkSeed: parsed.normalized,
       };
@@ -52,17 +60,19 @@ export default function TelegramPasteDialog({ open, mode, onClose, onApply }: Pr
     if (mode === 'project') {
       return {
         parsed,
+        role: resolvedRole,
         projectName: title,
-        sourceStartLink: intent === 'source' ? parsed.normalized : undefined,
-        targetLink: intent === 'target' ? parsed.normalized : undefined,
+        sourceStartLink: resolvedRole === 'source' ? parsed.normalized : undefined,
+        targetLink: resolvedRole === 'target' ? parsed.normalized : undefined,
       };
     }
     return {
       parsed,
+      role: resolvedRole,
       title,
-      targetLink: intent === 'target' ? parsed.normalized : undefined,
-      sourceStartLink: intent === 'source' ? parsed.normalized : undefined,
-      sourceEndLink: intent === 'source' ? parsed.normalized : undefined,
+      targetLink: resolvedRole === 'target' ? parsed.normalized : undefined,
+      sourceStartLink: resolvedRole === 'source' ? parsed.normalized : undefined,
+      sourceEndLink: resolvedRole === 'source' ? parsed.normalized : undefined,
     };
   };
 
@@ -86,6 +96,19 @@ export default function TelegramPasteDialog({ open, mode, onClose, onApply }: Pr
             helperText={parsed.detail}
             error={Boolean(draft.trim() && !parsed.ok)}
           />
+          <TextField
+            select
+            label="Use as"
+            fullWidth
+            value={role}
+            onChange={(e) => setRole(e.target.value as PasteRole)}
+            helperText="Auto sẽ tự đoán role theo loại link."
+          >
+            <MenuItem value="auto">Auto detect</MenuItem>
+            <MenuItem value="source">Source</MenuItem>
+            <MenuItem value="target">Target</MenuItem>
+            <MenuItem value="topic">Topic seed</MenuItem>
+          </TextField>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Chip label={parsed.kind} size="small" variant="outlined" />
             {parsed.chatSlug && <Chip label={`chat: ${parsed.chatSlug}`} size="small" variant="outlined" />}
@@ -100,7 +123,7 @@ export default function TelegramPasteDialog({ open, mode, onClose, onApply }: Pr
           <Alert severity={intent === 'unknown' ? 'warning' : 'info'} variant="outlined">
             {mode === 'topic' && 'Dán link topic/thread seed để tự đổ target_link_seed và gợi ý tên topic.'}
             {mode === 'project' && 'Dán link nguồn hoặc đích, UI sẽ gợi ý field phù hợp.'}
-            {mode === 'campaign' && 'Dán link target/source, UI sẽ đổ sang đúng field campaign.'}
+            {mode === 'campaign' && 'Dán link target/source/topic, UI sẽ đổ sang đúng field campaign.'}
           </Alert>
         </Box>
       </DialogContent>
