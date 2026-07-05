@@ -22,6 +22,9 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Divider from '@mui/material/Divider';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import MenuItem from '@mui/material/MenuItem';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import AddIcon from '@mui/icons-material/Add';
@@ -36,6 +39,10 @@ type ProjectRow = {
   description?: string | null;
   status?: string | null;
   sort_order?: number | null;
+  auto_enabled?: boolean | null;
+  auto_slots?: string | null;
+  auto_pick_count?: number | null;
+  auto_strategy?: string | null;
 };
 
 type TopicRow = {
@@ -82,7 +89,14 @@ export default function ProjectsPage() {
   const [toast, setToast] = React.useState<{ show: boolean; msg: string; type: 'success' | 'error' }>({ show: false, msg: '', type: 'success' });
   const [workspaceOpen, setWorkspaceOpen] = React.useState(false);
   const [workspaceMode, setWorkspaceMode] = React.useState<'create' | 'edit'>('create');
-  const [workspaceProject, setWorkspaceProject] = React.useState<ProjectRow>({ name: '', description: '' });
+  const [workspaceProject, setWorkspaceProject] = React.useState<ProjectRow>({
+    name: '',
+    description: '',
+    auto_enabled: false,
+    auto_slots: '',
+    auto_pick_count: 1,
+    auto_strategy: 'round_robin',
+  });
   const [selectedProjectId, setSelectedProjectId] = React.useState<string>('');
   const [selectedTopicId, setSelectedTopicId] = React.useState<string>('');
   const [topicDraft, setTopicDraft] = React.useState<TopicDraft>({ name: '', target_link_seed: '' });
@@ -133,7 +147,14 @@ export default function ProjectsPage() {
 
   const openCreateProject = () => {
     setWorkspaceMode('create');
-    setWorkspaceProject({ name: '', description: '' });
+    setWorkspaceProject({
+      name: '',
+      description: '',
+      auto_enabled: false,
+      auto_slots: '',
+      auto_pick_count: 1,
+      auto_strategy: 'round_robin',
+    });
     setSelectedProjectId('');
     setSelectedTopicId('');
     setWorkspaceOpen(true);
@@ -141,7 +162,13 @@ export default function ProjectsPage() {
 
   const openProjectWorkspace = (project: ProjectRow) => {
     setWorkspaceMode('edit');
-    setWorkspaceProject(project);
+    setWorkspaceProject({
+      ...project,
+      auto_enabled: Boolean(project.auto_enabled),
+      auto_slots: project.auto_slots || '',
+      auto_pick_count: Number(project.auto_pick_count || 1),
+      auto_strategy: project.auto_strategy || 'round_robin',
+    });
     setSelectedProjectId(project.id || '');
     setSelectedTopicId('');
     setTopicDraft({ name: '', target_link_seed: '' });
@@ -166,15 +193,25 @@ export default function ProjectsPage() {
       if (workspaceMode === 'create') {
         await fetchApi('/api/groups', {
           method: 'POST',
-          body: JSON.stringify({ name: workspaceProject.name.trim() }),
+          body: JSON.stringify({
+            name: workspaceProject.name.trim(),
+            auto_enabled: Boolean(workspaceProject.auto_enabled),
+            auto_slots: workspaceProject.auto_slots || '',
+            auto_pick_count: Number(workspaceProject.auto_pick_count || 1),
+            auto_strategy: workspaceProject.auto_strategy || 'round_robin',
+          }),
         });
         notify('Đã tạo dự án mới.', 'success');
-      } else if (workspaceProject.id) {
+          } else if (workspaceProject.id) {
         await fetchApi(`/api/groups/${workspaceProject.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
             name: workspaceProject.name.trim(),
             description: workspaceProject.description || null,
+            auto_enabled: Boolean(workspaceProject.auto_enabled),
+            auto_slots: workspaceProject.auto_slots || '',
+            auto_pick_count: Number(workspaceProject.auto_pick_count || 1),
+            auto_strategy: workspaceProject.auto_strategy || 'round_robin',
           }),
         });
         notify('Đã cập nhật dự án.', 'success');
@@ -451,6 +488,51 @@ export default function ProjectsPage() {
               value={workspaceProject.description || ''}
               onChange={(e) => setWorkspaceProject((current) => ({ ...current, description: e.target.value }))}
             />
+          </Box>
+
+          <Divider />
+
+          <Box sx={{ display: 'grid', gap: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Auto scheduler</Typography>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(workspaceProject.auto_enabled)}
+                  onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_enabled: e.target.checked }))}
+                />
+              }
+              label="Bật auto gửi ở cấp project"
+            />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                label="Khung giờ gửi"
+                value={workspaceProject.auto_slots || ''}
+                onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_slots: e.target.value }))}
+                fullWidth
+                helperText="Ví dụ: 09:00,13:30,20:15"
+              />
+              <TextField
+                label="Mỗi lượt chọn bao nhiêu campaign"
+                type="number"
+                value={workspaceProject.auto_pick_count || 1}
+                onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_pick_count: Number(e.target.value || 1) }))}
+                fullWidth
+              />
+            </Box>
+            <TextField
+              select
+              label="Thứ tự gửi"
+              value={workspaceProject.auto_strategy || 'round_robin'}
+              onChange={(e) => setWorkspaceProject((current) => ({ ...current, auto_strategy: e.target.value }))}
+              fullWidth
+              helperText="Scheduler sẽ đi tuần tự theo topic/campaign con hoặc theo chiến lược chọn."
+            >
+              <MenuItem value="round_robin">Round robin theo topic</MenuItem>
+              <MenuItem value="newest">Campaign mới nhất</MenuItem>
+              <MenuItem value="oldest">Campaign cũ nhất</MenuItem>
+              <MenuItem value="least_recent">Campaign ít chạy nhất</MenuItem>
+              <MenuItem value="priority">Ưu tiên theo trạng thái</MenuItem>
+            </TextField>
           </Box>
 
           <Divider />

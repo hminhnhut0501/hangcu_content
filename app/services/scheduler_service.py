@@ -9,6 +9,7 @@ from app.repositories.content_repo import (
     insert_row,
     list_due_campaigns,
     list_auto_groups,
+    list_group_topics,
     list_group_campaigns,
     pick_account_for_job,
     now_iso,
@@ -90,6 +91,36 @@ def _group_strategy_pick(campaigns: list[dict], group: dict) -> list[dict]:
     return ordered[:pick_count]
 
 
+def _group_campaign_sequence(group_id: str, group: dict) -> list[dict]:
+    topics = list_group_topics(group_id)
+    campaigns = list_group_campaigns(group_id)
+    topic_order = {str(topic.get("id")): index for index, topic in enumerate(topics)}
+
+    def _campaign_sort_key(row: dict) -> tuple[int, str, str]:
+        topic_index = topic_order.get(str(row.get("topic_id") or ""), len(topic_order))
+        last_run_at = str(row.get("last_run_at") or "")
+        created_at = str(row.get("created_at") or "")
+        return (topic_index, last_run_at, created_at)
+
+    ordered = sorted(campaigns, key=_campaign_sort_key)
+    strategy = str(group.get("auto_strategy") or "round_robin").strip().lower()
+    if strategy == "newest":
+        return sorted(ordered, key=lambda row: str(row.get("created_at") or ""), reverse=True)
+    if strategy == "oldest":
+        return sorted(ordered, key=lambda row: str(row.get("created_at") or ""))
+    if strategy == "least_recent":
+        return sorted(ordered, key=lambda row: str(row.get("last_run_at") or ""))
+    if strategy == "priority":
+        return sorted(ordered, key=lambda row: (str(row.get("status") or ""), _campaign_sort_key(row)))
+    last_slot_key = str(group.get("auto_last_slot_key") or "")
+    if last_slot_key:
+        ids = [str(row.get("id")) for row in ordered]
+        if last_slot_key in ids and len(ordered) > 1:
+            idx = ids.index(last_slot_key)
+            ordered = ordered[idx + 1 :] + ordered[: idx + 1]
+    return ordered
+
+
 def _next_auto_slot(group: dict, base: datetime | None = None) -> tuple[str, str | None]:
     slots = parse_slots(group.get("auto_slots") or "")
     if not slots:
@@ -115,7 +146,7 @@ def enqueue_due_groups():
             except Exception:
                 pass
 
-        campaigns = list_group_campaigns(group["id"])
+        campaigns = _group_campaign_sequence(group["id"], group)
         if not campaigns:
             update_row("content_groups", group["id"], {"auto_last_error": "no_enabled_campaigns", "auto_last_run_at": now_text})
             create_event(

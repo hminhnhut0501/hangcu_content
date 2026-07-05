@@ -6,6 +6,10 @@ class GroupCreate(BaseModel):
     source_key: str | None = None
     source_link: str | None = None
     target_link: str | None = None
+    auto_enabled: bool = False
+    auto_slots: str = ""
+    auto_pick_count: int = 1
+    auto_strategy: str = "round_robin"
 
 
 class GroupUpdate(BaseModel):
@@ -18,4 +22,3 @@ class GroupUpdate(BaseModel):
     auto_pick_count: int | None = None
     auto_strategy: str | None = None
     status: str | None = None
-
