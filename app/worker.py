@@ -16,6 +16,7 @@ from app.repositories.content_repo import (
     pick_account_for_job,
     release_stale_jobs,
     retry_job,
+    get_account_pool_report,
     update_campaign,
     update_row,
 )
@@ -214,13 +215,22 @@ async def execute_job(job: dict):
         account = pick_account_for_job()
         account_id = account.get("id") if account else None
     if not account_id:
-        raise RuntimeError("No eligible Telegram account available")
+        pool = get_account_pool_report()
+        raise RuntimeError(
+            "No eligible Telegram account available: "
+            f"total={pool.get('total', 0)} eligible={pool.get('eligible', 0)} "
+            f"reasons={pool.get('reasons', {})}"
+        )
     if (account.get("risk_status") or "active") != "active" or not account.get("is_active", True):
-        raise RuntimeError("Account paused or risky")
+        raise RuntimeError(
+            "Account paused or risky: "
+            f"is_active={bool(account.get('is_active', True))} "
+            f"risk_status={account.get('risk_status') or 'active'}"
+        )
     used = int(account.get("daily_job_count") or 0)
     limit = int(account.get("daily_job_limit") or ACCOUNT_DAILY_HARD_LIMIT)
     if limit and used >= limit:
-        raise RuntimeError("Account daily limit reached")
+        raise RuntimeError(f"Account daily limit reached: used={used} limit={limit}")
     await _safe_sleep()
     if job_type == "run_campaign":
         campaign_id = job.get("campaign_id")

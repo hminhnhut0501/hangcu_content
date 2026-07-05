@@ -326,6 +326,61 @@ def get_available_accounts():
     return eligible
 
 
+def get_account_pool_report() -> dict[str, Any]:
+    rows = (
+        _client()
+        .table("tg_accounts")
+        .select("*")
+        .execute()
+        .data
+        or []
+    )
+    report = {
+        "total": len(rows),
+        "eligible": 0,
+        "reasons": {
+            "inactive": 0,
+            "risky": 0,
+            "quota_reached": 0,
+            "missing_quota": 0,
+            "no_accounts": 0,
+        },
+        "accounts": [],
+    }
+    for account in rows:
+        reason = "eligible"
+        is_active = bool(account.get("is_active", True))
+        risk_status = str(account.get("risk_status") or "active").strip().lower()
+        limit = int(account.get("daily_job_limit") or 0)
+        used = int(account.get("daily_job_count") or 0)
+        if not is_active:
+            reason = "inactive"
+        elif risk_status not in ("", "active"):
+            reason = "risky"
+        elif limit <= 0:
+            reason = "missing_quota"
+        elif used >= limit:
+            reason = "quota_reached"
+        else:
+            report["eligible"] += 1
+        if reason != "eligible":
+            report["reasons"][reason] = report["reasons"].get(reason, 0) + 1
+        report["accounts"].append(
+            {
+                "id": account.get("id"),
+                "name": account.get("name"),
+                "is_active": is_active,
+                "risk_status": risk_status,
+                "daily_job_limit": limit,
+                "daily_job_count": used,
+                "reason": reason,
+            }
+        )
+    if report["total"] == 0:
+        report["reasons"]["no_accounts"] = 1
+    return report
+
+
 def pick_account_for_job() -> dict[str, Any] | None:
     accounts = get_available_accounts()
     if not accounts:
