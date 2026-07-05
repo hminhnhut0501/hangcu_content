@@ -6,6 +6,7 @@ import { fetcher } from '../../../lib/api';
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -17,8 +18,10 @@ import type { ChipProps } from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import IconButton from "@mui/material/IconButton";
+import Button from "@mui/material/Button";
 import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import RefreshIcon from '@mui/icons-material/Refresh';
 type LogRow = {
   id: number;
   created_at: string;
@@ -38,12 +41,14 @@ function formatTime(value: string) {
 }
 
 export default function LogsPage() {
-  const { data, isLoading, error } = useSWR<LogRow[]>('/api/logs?limit=100', fetcher);
+  const { data, isLoading, error, mutate } = useSWR<LogRow[]>('/api/logs?limit=200', fetcher);
   const [levelFilter, setLevelFilter] = useState('ALL');
+  const [entityFilter, setEntityFilter] = useState('ALL');
   const [search, setSearch] = useState('');
 
   const displayLogs = (data || []).filter((log) => {
     if (levelFilter !== 'ALL' && String(log.level || '').toUpperCase() !== levelFilter) return false;
+    if (entityFilter !== 'ALL' && String(log.entity_type || '').toUpperCase() !== entityFilter) return false;
     if (search) {
       const haystack = [log.message, log.code, log.entity_type, log.entity_id].join(' ').toLowerCase();
       if (!haystack.includes(search.toLowerCase())) return false;
@@ -60,6 +65,15 @@ export default function LogsPage() {
     }
   };
 
+  const exportVisibleLogs = async () => {
+    const text = JSON.stringify(displayLogs, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      console.log(text);
+    }
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -73,36 +87,63 @@ export default function LogsPage() {
         </Box>
       </Box>
 
-      <Card sx={{ mb: 3, p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-        <TextField 
-          label="Tìm kiếm log" 
-          variant="outlined" 
-          size="small"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ flexGrow: 1 }}
-          slotProps={{
-            input: {
-              endAdornment: <SearchIcon color="action" />
-            }
-          }}
-        />
-        <TextField
-          select
-          label="Mức độ (Level)"
-          size="small"
-          value={levelFilter}
-          onChange={(e) => setLevelFilter(e.target.value)}
-          sx={{ width: 150 }}
-        >
-          <MenuItem value="ALL">Tất cả</MenuItem>
-          <MenuItem value="INFO">Thông báo (INFO)</MenuItem>
-          <MenuItem value="WARNING">Cảnh báo (WARN)</MenuItem>
-          <MenuItem value="ERROR">Lỗi (ERROR)</MenuItem>
-        </TextField>
-        <IconButton color="primary">
-          <FilterListIcon />
-        </IconButton>
+      <Card sx={{ mb: 3 }}>
+        <CardContent sx={{ display: 'grid', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <TextField 
+              label="Tìm kiếm log" 
+              variant="outlined" 
+              size="small"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ flexGrow: 1, minWidth: 260 }}
+              slotProps={{
+                input: {
+                  endAdornment: <SearchIcon color="action" />
+                }
+              }}
+            />
+            <TextField
+              select
+              label="Mức độ"
+              size="small"
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value)}
+              sx={{ width: 170 }}
+            >
+              <MenuItem value="ALL">Tất cả</MenuItem>
+              <MenuItem value="INFO">INFO</MenuItem>
+              <MenuItem value="WARNING">WARN</MenuItem>
+              <MenuItem value="ERROR">ERROR</MenuItem>
+            </TextField>
+            <TextField
+              select
+              label="Entity"
+              size="small"
+              value={entityFilter}
+              onChange={(e) => setEntityFilter(e.target.value)}
+              sx={{ width: 170 }}
+            >
+              <MenuItem value="ALL">Tất cả</MenuItem>
+              <MenuItem value="GROUP">Project</MenuItem>
+              <MenuItem value="TOPIC">Topic</MenuItem>
+              <MenuItem value="CAMPAIGN">Campaign</MenuItem>
+              <MenuItem value="SYSTEM">System</MenuItem>
+            </TextField>
+            <IconButton color="primary" onClick={() => mutate()}>
+              <RefreshIcon />
+            </IconButton>
+            <Button variant="outlined" startIcon={<ContentCopyIcon />} onClick={exportVisibleLogs}>
+              Copy report
+            </Button>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Chip label={`Visible ${displayLogs.length}`} size="small" variant="outlined" />
+            <Chip label={`INFO ${(data || []).filter((log) => String(log.level || '').toUpperCase() === 'INFO').length}`} size="small" color="info" variant="outlined" />
+            <Chip label={`WARN ${(data || []).filter((log) => String(log.level || '').toUpperCase() === 'WARNING').length}`} size="small" color="warning" variant="outlined" />
+            <Chip label={`ERROR ${(data || []).filter((log) => String(log.level || '').toUpperCase() === 'ERROR').length}`} size="small" color="error" variant="outlined" />
+          </Box>
+        </CardContent>
       </Card>
 
       <Card>
