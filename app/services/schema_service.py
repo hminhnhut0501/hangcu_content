@@ -12,6 +12,17 @@ except Exception:  # pragma: no cover
 from app.core.config import settings
 
 
+CANONICAL_TABLE_ALIASES: dict[str, str] = {
+    "projects": "content_groups",
+    "topics": "content_topics",
+    "campaign_children": "content_campaigns",
+    "runs": "campaign_runs",
+    "logs": "content_events",
+}
+
+TABLE_ALIAS_TO_CANONICAL = {physical: canonical for canonical, physical in CANONICAL_TABLE_ALIASES.items()}
+
+
 SCHEMA_EXPECTATIONS: dict[str, set[str]] = {
     "tg_accounts": {
         "id",
@@ -140,6 +151,92 @@ SCHEMA_EXPECTATIONS: dict[str, set[str]] = {
         "created_at",
     },
     "audit_logs": {"id", "actor_id", "action", "entity_type", "entity_id", "metadata", "created_at"},
+}
+
+CANONICAL_SCHEMA_EXPECTATIONS: dict[str, set[str]] = {
+    "projects": SCHEMA_EXPECTATIONS["content_groups"],
+    "topics": SCHEMA_EXPECTATIONS["content_topics"],
+    "campaign_children": SCHEMA_EXPECTATIONS["content_campaigns"],
+    "runs": SCHEMA_EXPECTATIONS["campaign_runs"],
+    "logs": SCHEMA_EXPECTATIONS["content_events"],
+}
+
+CANONICAL_COLUMN_SQL_TYPES: dict[tuple[str, str], str] = {
+    ("projects", "id"): "uuid primary key default gen_random_uuid()",
+    ("projects", "name"): "text not null",
+    ("projects", "source_key"): "text",
+    ("projects", "source_link"): "text",
+    ("projects", "target_link"): "text",
+    ("projects", "auto_enabled"): "boolean not null default false",
+    ("projects", "auto_slots"): "text not null default ''",
+    ("projects", "auto_pick_count"): "int not null default 1",
+    ("projects", "auto_strategy"): "text not null default 'round_robin'",
+    ("projects", "auto_next_run_at"): "timestamptz",
+    ("projects", "auto_last_run_at"): "timestamptz",
+    ("projects", "auto_last_slot_key"): "text",
+    ("projects", "auto_last_result"): "text",
+    ("projects", "auto_last_error"): "text",
+    ("projects", "status"): "text not null default 'active'",
+    ("projects", "created_at"): "timestamptz not null default now()",
+    ("projects", "updated_at"): "timestamptz not null default now()",
+    ("topics", "id"): "uuid primary key default gen_random_uuid()",
+    ("topics", "group_id"): "uuid not null references content_groups(id) on delete cascade",
+    ("topics", "name"): "text not null",
+    ("topics", "source_topic_id"): "bigint",
+    ("topics", "target_topic_id"): "bigint",
+    ("topics", "target_link_seed"): "text",
+    ("topics", "last_msg_id"): "bigint not null default 0",
+    ("topics", "sort_order"): "int not null default 0",
+    ("topics", "status"): "text not null default 'active'",
+    ("topics", "created_at"): "timestamptz not null default now()",
+    ("topics", "updated_at"): "timestamptz not null default now()",
+    ("campaign_children", "id"): "uuid primary key default gen_random_uuid()",
+    ("campaign_children", "group_id"): "uuid not null references content_groups(id) on delete cascade",
+    ("campaign_children", "topic_id"): "uuid not null references content_topics(id) on delete cascade",
+    ("campaign_children", "title"): "text not null",
+    ("campaign_children", "source_start_link"): "text",
+    ("campaign_children", "source_end_link"): "text",
+    ("campaign_children", "follow_latest"): "boolean not null default true",
+    ("campaign_children", "target_link"): "text",
+    ("campaign_children", "caption"): "text",
+    ("campaign_children", "group_mode"): "text not null default 'keep'",
+    ("campaign_children", "order_mode"): "text not null default 'auto'",
+    ("campaign_children", "batch_size"): "int not null default 1",
+    ("campaign_children", "delay_min"): "int not null default 1",
+    ("campaign_children", "delay_max"): "int not null default 7",
+    ("campaign_children", "enabled"): "boolean not null default true",
+    ("campaign_children", "status"): "text not null default 'draft'",
+    ("campaign_children", "schedule_enabled"): "boolean not null default false",
+    ("campaign_children", "schedule_slots"): "text not null default ''",
+    ("campaign_children", "next_run_at"): "timestamptz",
+    ("campaign_children", "last_run_at"): "timestamptz",
+    ("campaign_children", "last_result"): "text",
+    ("campaign_children", "last_msg_id"): "bigint not null default 0",
+    ("campaign_children", "sent_count"): "int not null default 0",
+    ("campaign_children", "sent_units_count"): "int not null default 0",
+    ("campaign_children", "created_at"): "timestamptz not null default now()",
+    ("campaign_children", "updated_at"): "timestamptz not null default now()",
+    ("runs", "id"): "uuid primary key default gen_random_uuid()",
+    ("runs", "campaign_id"): "uuid not null references content_campaigns(id) on delete cascade",
+    ("runs", "slot_key"): "text not null",
+    ("runs", "scheduled_at"): "timestamptz",
+    ("runs", "status"): "text not null default 'pending'",
+    ("runs", "selected_topic_ids"): "jsonb",
+    ("runs", "queued_items"): "int not null default 0",
+    ("runs", "started_at"): "timestamptz",
+    ("runs", "finished_at"): "timestamptz",
+    ("runs", "last_error"): "text",
+    ("runs", "created_at"): "timestamptz not null default now()",
+    ("runs", "updated_at"): "timestamptz not null default now()",
+    ("logs", "id"): "bigserial primary key",
+    ("logs", "group_id"): "uuid",
+    ("logs", "topic_id"): "uuid",
+    ("logs", "campaign_id"): "uuid",
+    ("logs", "level"): "text not null default 'info'",
+    ("logs", "code"): "text not null default ''",
+    ("logs", "message"): "text not null default ''",
+    ("logs", "payload"): "jsonb",
+    ("logs", "created_at"): "timestamptz not null default now()",
 }
 
 COLUMN_SQL_TYPES: dict[tuple[str, str], str] = {
@@ -279,6 +376,9 @@ _LAST_SCHEMA_RECONCILE: dict[str, Any] = {
     "missing_tables": 0,
     "missing_columns": 0,
     "extra_columns": 0,
+    "canonical_missing_tables": 0,
+    "canonical_missing_columns": 0,
+    "canonical_extra_columns": 0,
 }
 
 
@@ -286,13 +386,22 @@ def _db_url() -> str:
     return settings.supabase_db_url or ""
 
 
-def get_real_schema() -> dict[str, set[str]]:
+def resolve_table_name(table: str) -> str:
+    return CANONICAL_TABLE_ALIASES.get(table, table)
+
+
+def canonical_table_name(table: str) -> str:
+    return TABLE_ALIAS_TO_CANONICAL.get(table, table)
+
+
+def get_real_schema(tables: list[str] | None = None) -> dict[str, set[str]]:
     db_url = _db_url()
     if not db_url:
         return {}
     if psycopg is None:
         raise RuntimeError("psycopg is required to read schema from Supabase")
-    tables = list(SCHEMA_EXPECTATIONS.keys())
+    requested_tables = tables or list(SCHEMA_EXPECTATIONS.keys())
+    physical_tables = [resolve_table_name(table) for table in requested_tables]
     try:
         with psycopg.connect(db_url) as conn:
             with conn.cursor() as cur:
@@ -304,9 +413,9 @@ def get_real_schema() -> dict[str, set[str]]:
                       and table_name = any(%s)
                     order by table_name, ordinal_position
                     """,
-                    (tables,),
+                    (physical_tables,),
                 )
-                schema: dict[str, set[str]] = {table: set() for table in tables}
+                schema: dict[str, set[str]] = {table: set() for table in physical_tables}
                 for table_name, column_name in cur.fetchall():
                     schema.setdefault(table_name, set()).add(column_name)
                 return schema
@@ -320,7 +429,7 @@ def get_real_schema_cached() -> dict[str, set[str]]:
 
 
 def has_column(table: str, column: str) -> bool:
-    return column in get_real_schema_cached().get(table, set())
+    return column in get_real_schema_cached().get(resolve_table_name(table), set())
 
 
 def build_schema_reconcile() -> dict[str, Any]:
@@ -330,11 +439,17 @@ def build_schema_reconcile() -> dict[str, Any]:
             "ok": False,
             "error": "schema_unavailable",
             "tables": sorted(SCHEMA_EXPECTATIONS.keys()),
+            "canonical_tables": sorted(CANONICAL_SCHEMA_EXPECTATIONS.keys()),
             "missing": {},
             "extra": {},
             "actual": {},
             "expected": {table: sorted(cols) for table, cols in SCHEMA_EXPECTATIONS.items()},
             "suggested_migrations": [],
+            "canonical_missing": {},
+            "canonical_extra": {},
+            "canonical_actual": {},
+            "canonical_expected": {table: sorted(cols) for table, cols in CANONICAL_SCHEMA_EXPECTATIONS.items()},
+            "canonical_suggested_migrations": [],
         }
         _LAST_SCHEMA_RECONCILE.update(
             {
@@ -344,6 +459,9 @@ def build_schema_reconcile() -> dict[str, Any]:
                 "missing_tables": 0,
                 "missing_columns": 0,
                 "extra_columns": 0,
+                "canonical_missing_tables": 0,
+                "canonical_missing_columns": 0,
+                "canonical_extra_columns": 0,
             }
         )
         return report
@@ -369,12 +487,45 @@ def build_schema_reconcile() -> dict[str, Any]:
     report = {
         "ok": True,
         "tables": sorted(SCHEMA_EXPECTATIONS.keys()),
+        "canonical_tables": sorted(CANONICAL_SCHEMA_EXPECTATIONS.keys()),
         "missing": missing,
         "extra": extra,
         "actual": {table: sorted(cols) for table, cols in actual.items()},
         "expected": {table: sorted(cols) for table, cols in SCHEMA_EXPECTATIONS.items()},
         "suggested_migrations": suggestions,
+        "canonical_missing": {},
+        "canonical_extra": {},
+        "canonical_actual": {},
+        "canonical_expected": {table: sorted(cols) for table, cols in CANONICAL_SCHEMA_EXPECTATIONS.items()},
+        "canonical_suggested_migrations": [],
     }
+    canonical_missing: dict[str, list[str]] = {}
+    canonical_extra: dict[str, list[str]] = {}
+    canonical_suggestions: list[dict[str, str]] = []
+    for table, expected_columns in CANONICAL_SCHEMA_EXPECTATIONS.items():
+        physical_table = resolve_table_name(table)
+        actual_columns = actual.get(physical_table, set())
+        missing_cols = sorted(expected_columns - actual_columns)
+        extra_cols = sorted(actual_columns - expected_columns)
+        if missing_cols:
+            canonical_missing[table] = missing_cols
+            for column in missing_cols:
+                canonical_suggestions.append(
+                    {
+                        "table": table,
+                        "column": column,
+                        "physical_table": physical_table,
+                        "sql": _suggest_column_sql(table, column),
+                    }
+                )
+        if extra_cols:
+            canonical_extra[table] = extra_cols
+    report["canonical_missing"] = canonical_missing
+    report["canonical_extra"] = canonical_extra
+    report["canonical_actual"] = {
+        table: sorted(actual.get(resolve_table_name(table), set())) for table in CANONICAL_SCHEMA_EXPECTATIONS
+    }
+    report["canonical_suggested_migrations"] = canonical_suggestions
     _LAST_SCHEMA_RECONCILE.update(
         {
             "ok": True,
@@ -383,14 +534,17 @@ def build_schema_reconcile() -> dict[str, Any]:
             "missing_tables": len(missing),
             "missing_columns": sum(len(cols) for cols in missing.values()),
             "extra_columns": sum(len(cols) for cols in extra.values()),
+            "canonical_missing_tables": len(canonical_missing),
+            "canonical_missing_columns": sum(len(cols) for cols in canonical_missing.values()),
+            "canonical_extra_columns": sum(len(cols) for cols in canonical_extra.values()),
         }
     )
     return report
 
 
 def _suggest_column_sql(table: str, column: str) -> str:
-    spec = COLUMN_SQL_TYPES.get((table, column), "text")
-    return f"alter table if exists {table} add column if not exists {column} {spec};"
+    spec = COLUMN_SQL_TYPES.get((table, column)) or CANONICAL_COLUMN_SQL_TYPES.get((table, column), "text")
+    return f"alter table if exists {resolve_table_name(table)} add column if not exists {column} {spec};"
 
 
 def get_schema_reconcile_status() -> dict[str, Any]:
