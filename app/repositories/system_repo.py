@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.core.db import get_supabase_client
+from app.services.schema_service import has_column
 
 
 def _client():
@@ -36,7 +37,12 @@ def _normalize_account_row(row: dict[str, Any] | None):
 
 def list_accounts():
     try:
-        rows = _client().table("tg_accounts").select("*").order("created_at", desc=True).execute().data or []
+        query = _client().table("tg_accounts").select("*")
+        if has_column("tg_accounts", "created_at"):
+            query = query.order("created_at", desc=True)
+        elif has_column("tg_accounts", "updated_at"):
+            query = query.order("updated_at", desc=True)
+        rows = query.execute().data or []
         return [_normalize_account_row(row) for row in rows]
     except Exception:
         return []
