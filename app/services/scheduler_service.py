@@ -129,6 +129,49 @@ def _next_auto_slot(group: dict, base: datetime | None = None) -> tuple[str, str
     return (next_at or "", next_at)
 
 
+def build_group_auto_status(group_id: str) -> dict:
+    from app.repositories.content_repo import get_row
+
+    group = get_row("content_groups", group_id)
+    if not group:
+        return {"ok": False, "error": "group_not_found", "group_id": group_id}
+    slots = parse_slots(group.get("auto_slots") or "")
+    campaigns = _group_campaign_sequence(group_id, group)
+    selected = _group_strategy_pick(campaigns, group)
+    next_at = group.get("auto_next_run_at") or next_slot_at(slots)
+    return {
+        "ok": True,
+        "group_id": group_id,
+        "group": {
+            "id": group.get("id"),
+            "name": group.get("name"),
+            "status": group.get("status"),
+            "auto_enabled": bool(group.get("auto_enabled")),
+            "auto_slots": slots,
+            "auto_pick_count": int(group.get("auto_pick_count") or 1),
+            "auto_strategy": str(group.get("auto_strategy") or "round_robin"),
+            "auto_next_run_at": next_at,
+            "auto_last_run_at": group.get("auto_last_run_at"),
+            "auto_last_slot_key": group.get("auto_last_slot_key"),
+            "auto_last_result": group.get("auto_last_result"),
+            "auto_last_error": group.get("auto_last_error"),
+        },
+        "campaign_count": len(campaigns),
+        "selected_campaign_ids": [str(row.get("id")) for row in selected],
+        "selected_topics": sorted({str(row.get("topic_id")) for row in selected if row.get("topic_id")}),
+        "next_preview": [
+            {
+                "campaign_id": row.get("id"),
+                "topic_id": row.get("topic_id"),
+                "title": row.get("title"),
+                "last_msg_id": int(row.get("last_msg_id") or 0),
+                "next_send_at": row.get("next_run_at") or row.get("last_run_at") or next_at,
+            }
+            for row in selected[:5]
+        ],
+    }
+
+
 def enqueue_due_groups():
     groups = list_auto_groups()
     now_text = now_iso()
@@ -173,6 +216,7 @@ def enqueue_due_groups():
                     "status": "queued",
                     "queued_items": 1,
                     "selected_topic_ids": selected_topic_ids,
+                    "result": {"run_mode": "drip", "scheduler": "project_auto"},
                 },
             )
             insert_row(
@@ -190,6 +234,9 @@ def enqueue_due_groups():
                         "group_id": group["id"],
                         "auto_group": True,
                         "slot_key": slot_key,
+                        "run_mode": "drip",
+                        "drip_mode": True,
+                        "cursor_last_msg_id": int(campaign.get("last_msg_id") or 0),
                     },
                 },
             )
@@ -231,6 +278,95 @@ def enqueue_due_groups():
     return enqueued
 
 
+def enqueue_group_auto_now(group_id: str):
+    from app.repositories.content_repo import get_row
+
+    group = get_row("content_groups", group_id)
+    if not group:
+        return {"ok": False, "error": "group_not_found"}
+    if not bool(group.get("auto_enabled")):
+        return {"ok": False, "error": "auto_disabled"}
+    slots = parse_slots(group.get("auto_slots") or "")
+    if not slots:
+        return {"ok": False, "error": "no_slots"}
+    campaigns = _group_campaign_sequence(group_id, group)
+    if not campaigns:
+        return {"ok": False, "error": "no_enabled_campaigns"}
+    selected_campaigns = _group_strategy_pick(campaigns, group)
+    if not selected_campaigns:
+        return {"ok": False, "error": "no_selection"}
+    slot_key = f"manual:{now_iso()}"
+    now_text = now_iso()
+    selected_topic_ids = [campaign.get("topic_id") for campaign in selected_campaigns if campaign.get("topic_id")]
+    job_ids = []
+    for campaign in selected_campaigns:
+        run_row = insert_row(
+            "campaign_runs",
+            {
+                "campaign_id": campaign["id"],
+                "slot_key": slot_key,
+                "scheduled_at": now_text,
+                "status": "queued",
+                "queued_items": 1,
+                "selected_topic_ids": selected_topic_ids,
+                "result": {"run_mode": "drip", "scheduler": "manual_auto_now"},
+            },
+        )
+        job = insert_row(
+            "queue_jobs",
+            {
+                "job_type": "run_campaign",
+                "campaign_id": campaign["id"],
+                "group_id": group["id"],
+                "topic_id": campaign.get("topic_id"),
+                "status": "pending",
+                "priority": 100,
+                "payload": {
+                    "campaign_id": campaign["id"],
+                    "campaign_run_id": run_row["id"],
+                    "group_id": group["id"],
+                    "auto_group": True,
+                    "slot_key": slot_key,
+                    "run_mode": "drip",
+                    "drip_mode": True,
+                    "cursor_last_msg_id": int(campaign.get("last_msg_id") or 0),
+                },
+            },
+        )
+        update_campaign(campaign["id"], {"status": "queued", "last_run_at": now_text})
+        job_ids.append(job.get("id"))
+    update_row(
+        "content_groups",
+        group["id"],
+        {
+            "auto_next_run_at": next_slot_at(slots),
+            "auto_last_run_at": now_text,
+            "auto_last_slot_key": slot_key,
+            "auto_last_result": "queued",
+            "auto_last_error": "",
+        },
+    )
+    create_event(
+        "info",
+        "group_auto_manual_triggered",
+        "Group auto drip triggered manually",
+        {
+            "group_id": group["id"],
+            "slot_key": slot_key,
+            "campaign_ids": [campaign["id"] for campaign in selected_campaigns],
+            "job_ids": job_ids,
+        },
+        group_id=group["id"],
+    )
+    return {
+        "ok": True,
+        "group_id": group["id"],
+        "slot_key": slot_key,
+        "campaign_ids": [campaign["id"] for campaign in selected_campaigns],
+        "job_ids": job_ids,
+    }
+
+
 def enqueue_due_campaigns():
     due = list_due_campaigns()
     enqueued = []
@@ -245,6 +381,7 @@ def enqueue_due_campaigns():
                 "status": "queued",
                 "queued_items": 1,
                 "selected_topic_ids": [],
+                "result": {"run_mode": "drip", "scheduler": "campaign_schedule"},
             },
         )
         insert_row(
@@ -254,7 +391,13 @@ def enqueue_due_campaigns():
                 "campaign_id": campaign["id"],
                 "status": "pending",
                 "priority": 100,
-                "payload": {"campaign_id": campaign["id"], "campaign_run_id": run_row["id"]},
+                "payload": {
+                    "campaign_id": campaign["id"],
+                    "campaign_run_id": run_row["id"],
+                    "run_mode": "drip",
+                    "drip_mode": True,
+                    "cursor_last_msg_id": int(campaign.get("last_msg_id") or 0),
+                },
             },
         )
         slots = parse_slots(campaign.get("schedule_slots") or "")

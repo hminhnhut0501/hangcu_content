@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.repositories.content_repo import delete_row, insert_row, list_rows_filtered, update_row
 from app.schemas.groups import GroupCreate, GroupUpdate
 from app.schemas.responses import DeleteResponse, EntityResponse
+from app.services.scheduler_service import build_group_auto_status, enqueue_group_auto_now
 
 router = APIRouter()
 
@@ -29,3 +30,13 @@ def update_group(group_id: str, payload: GroupUpdate):
 def delete_group(group_id: str):
     delete_row("content_groups", group_id)
     return {"ok": True}
+
+
+@router.get("/{group_id}/auto/status")
+def get_group_auto_status(group_id: str):
+    return build_group_auto_status(group_id)
+
+
+@router.post("/{group_id}/auto/run")
+def run_group_auto_now(group_id: str):
+    return enqueue_group_auto_now(group_id)

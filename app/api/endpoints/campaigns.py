@@ -44,12 +44,140 @@ def update_campaign(campaign_id: str, payload: CampaignUpdate):
     return {"id": row["id"]}
 
 
+@router.get("/{campaign_id}/preflight")
+def campaign_preflight(campaign_id: str):
+    campaign = get_row("content_campaigns", campaign_id)
+    if not campaign:
+        raise HTTPException(status_code=404, detail="campaign_not_found")
+    topic = get_row("content_topics", str(campaign.get("topic_id") or ""))
+    project = get_row("content_groups", str(campaign.get("group_id") or ""))
+    pool = get_account_pool_report()
+    issues: list[dict[str, str]] = []
+    warnings: list[dict[str, str]] = []
+    if not str(campaign.get("source_start_link") or "").strip():
+        issues.append({"code": "missing_source", "message": "Campaign chưa có source_start_link."})
+    if not str(campaign.get("target_link") or "").strip():
+        issues.append({"code": "missing_target", "message": "Campaign chưa có target_link."})
+    if not topic:
+        issues.append({"code": "topic_not_found", "message": "Topic đích của campaign không tồn tại."})
+    if not project:
+        warnings.append({"code": "project_not_found", "message": "Project của campaign không load được từ backend."})
+    if int(pool.get("eligible") or 0) <= 0:
+        issues.append({"code": "no_account", "message": "No eligible Telegram account available."})
+    elif int(pool.get("eligible") or 0) < 2:
+        warnings.append({"code": "few_accounts", "message": "Chỉ có 1 account đủ điều kiện, drip có thể kẹt nếu account đó bị pause."})
+    if int(campaign.get("batch_size") or 0) <= 0:
+        warnings.append({"code": "batch_size", "message": "batch_size chưa hợp lệ, sẽ được hiểu là 1."})
+    if int(campaign.get("delay_min") or 0) > int(campaign.get("delay_max") or 0):
+        warnings.append({"code": "delay_range", "message": "delay_min lớn hơn delay_max."})
+    return {
+        "ok": len(issues) == 0,
+        "campaign_id": campaign_id,
+        "campaign": {
+            "id": campaign.get("id"),
+            "title": campaign.get("title"),
+            "status": campaign.get("status"),
+            "enabled": campaign.get("enabled"),
+            "run_mode": "drip",
+            "source_start_link": campaign.get("source_start_link"),
+            "source_end_link": campaign.get("source_end_link"),
+            "target_link": campaign.get("target_link"),
+            "batch_size": campaign.get("batch_size") or 1,
+            "delay_min": campaign.get("delay_min") or 1,
+            "delay_max": campaign.get("delay_max") or 7,
+            "follow_latest": bool(campaign.get("follow_latest", True)),
+            "last_msg_id": int(campaign.get("last_msg_id") or 0),
+            "next_send_at": campaign.get("next_send_at"),
+            "topic": {
+                "id": topic.get("id") if topic else None,
+                "name": topic.get("name") if topic else None,
+                "target_link_seed": topic.get("target_link_seed") if topic else None,
+            },
+            "project": {
+                "id": project.get("id") if project else None,
+                "name": project.get("name") if project else None,
+            },
+            "account_pool": {
+                "eligible": int(pool.get("eligible") or 0),
+                "total": int(pool.get("total") or 0),
+                "reasons": pool.get("reasons") or {},
+            },
+        },
+        "issues": issues,
+        "warnings": warnings,
+        "checks": [
+            {"key": "source_link", "label": "Source link", "ok": bool(str(campaign.get("source_start_link") or "").strip())},
+            {"key": "target_link", "label": "Target link", "ok": bool(str(campaign.get("target_link") or "").strip())},
+            {"key": "topic", "label": "Topic đích", "ok": bool(topic)},
+            {"key": "account", "label": "Eligible account", "ok": int(pool.get("eligible") or 0) > 0},
+        ],
+    }
+
+
+@router.get("/{campaign_id}/preview")
+def campaign_preview(campaign_id: str):
+    campaign = get_row("content_campaigns", campaign_id)
+    if not campaign:
+        raise HTTPException(status_code=404, detail="campaign_not_found")
+    topic = get_row("content_topics", str(campaign.get("topic_id") or ""))
+    project = get_row("content_groups", str(campaign.get("group_id") or ""))
+    batch_size = int(campaign.get("batch_size") or 1)
+    delay_min = int(campaign.get("delay_min") or 1)
+    delay_max = int(campaign.get("delay_max") or 7)
+    last_msg_id = int(campaign.get("last_msg_id") or 0)
+    preview_items = []
+    for index in range(1, min(batch_size, 5) + 1):
+        target = campaign.get("target_link") or (topic.get("target_link_seed") if topic else "-")
+        preview_items.append(
+            {
+                "step": index,
+                "source": campaign.get("source_start_link") or "-",
+                "target": target,
+                "cursor": last_msg_id + index,
+                "delay_window": {"min": delay_min, "max": delay_max},
+                "caption_mode": "keep" if str(campaign.get("group_mode") or "keep") == "keep" else "replace",
+            }
+        )
+    return {
+        "ok": True,
+        "campaign_id": campaign_id,
+        "project": {
+            "id": project.get("id") if project else None,
+            "name": project.get("name") if project else None,
+        },
+        "topic": {
+            "id": topic.get("id") if topic else None,
+            "name": topic.get("name") if topic else None,
+            "target_link_seed": topic.get("target_link_seed") if topic else None,
+        },
+        "run_mode": "drip",
+        "cursor_last_msg_id": last_msg_id,
+        "batch_size": batch_size,
+        "delay_min": delay_min,
+        "delay_max": delay_max,
+        "preview": preview_items,
+        "summary": {
+            "source": campaign.get("source_start_link") or "-",
+            "target": campaign.get("target_link") or (topic.get("target_link_seed") if topic else "-"),
+            "next_cursor": last_msg_id + 1 if last_msg_id > 0 else 1,
+            "project_name": project.get("name") if project else None,
+            "topic_name": topic.get("name") if topic else None,
+        },
+    }
+
+
 @router.post("/{campaign_id}/run", response_model=EntityResponse)
 def run_campaign(campaign_id: str, mode: str = "full"):
     campaign = get_row("content_campaigns", campaign_id)
     if not campaign:
         raise HTTPException(status_code=404, detail="campaign_not_found")
-    run_mode = "single" if str(mode or "").strip().lower() in {"single", "one", "one_message", "1"} else "full"
+    normalized_mode = str(mode or "").strip().lower()
+    if normalized_mode in {"single", "one", "one_message", "1"}:
+        run_mode = "single"
+    elif normalized_mode in {"drip", "auto_drip"}:
+        run_mode = "drip"
+    else:
+        run_mode = "full"
     pool = get_account_pool_report()
     if int(pool.get("eligible") or 0) <= 0:
         detail = f"no_eligible_telegram_account: {pool.get('reasons') or {}}"
@@ -104,7 +232,13 @@ def run_campaign(campaign_id: str, mode: str = "full"):
                 "topic_id": campaign.get("topic_id"),
                 "status": "pending",
                 "priority": 100,
-                "payload": {"campaign_id": campaign_id, "campaign_run_id": run["id"], "run_mode": run_mode},
+                "payload": {
+                    "campaign_id": campaign_id,
+                    "campaign_run_id": run["id"],
+                    "run_mode": run_mode,
+                    "drip_mode": run_mode == "drip",
+                    "cursor_last_msg_id": int(campaign.get("last_msg_id") or 0),
+                },
             },
             raise_error=True,
         )
@@ -132,7 +266,13 @@ def run_campaign(campaign_id: str, mode: str = "full"):
         "info",
         "campaign_queued",
         "Campaign queued for run",
-        {"job_id": row["id"], "run_id": run["id"], "pool": pool, "run_mode": run_mode},
+        {
+            "job_id": row["id"],
+            "run_id": run["id"],
+            "pool": pool,
+            "run_mode": run_mode,
+            "cursor_last_msg_id": int(campaign.get("last_msg_id") or 0),
+        },
         campaign_id=campaign_id,
     )
     return {"id": row["id"]}

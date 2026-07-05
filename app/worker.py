@@ -121,6 +121,7 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
     payload = job.get("payload") or {}
     run_id = payload.get("campaign_run_id") if isinstance(payload, dict) else None
     run_mode = str(payload.get("run_mode") or "full").strip().lower() if isinstance(payload, dict) else "full"
+    drip_mode = run_mode == "drip"
     target_link = str(campaign.get("target_link") or "").strip()
     if not target_link:
         raise RuntimeError("Missing target_link")
@@ -142,6 +143,27 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
     skipped_empty = 0
     last_source_msg_id = int(campaign.get("last_msg_id") or 0)
     caption_prefix = str(campaign.get("caption") or "").strip()
+    if drip_mode:
+        update_campaign(
+            campaign["id"],
+            {
+                "status": "running",
+                "last_run_at": now_iso(),
+                "last_result": "running",
+            },
+        )
+        create_event(
+            "info",
+            "campaign_drip_started",
+            "Drip campaign started",
+            {
+                "campaign_id": campaign["id"],
+                "account_id": account_id,
+                "cursor_last_msg_id": last_source_msg_id,
+                "run_mode": run_mode,
+            },
+            campaign_id=campaign["id"],
+        )
     for msg in source_messages:
         sent = await _send_message_like(client, target_entity, msg, default_caption=caption_prefix)
         last_source_msg_id = max(last_source_msg_id, int(getattr(msg, "id", 0) or 0))
@@ -160,6 +182,14 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
             continue
         total_sent += 1
         if delay_max > 0 and total_sent < len(source_messages):
+            if drip_mode:
+                update_campaign(
+                    campaign["id"],
+                    {
+                        "status": "sleeping",
+                        "next_send_at": now_iso(),
+                    },
+                )
             await asyncio.sleep(random.uniform(delay_min, delay_max) if delay_max > delay_min else float(delay_min))
 
     if total_sent <= 0:
@@ -171,10 +201,12 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
         {
             "last_run_at": now_iso(),
             "last_result": "success",
-            "status": "done",
+            "status": "sleeping" if drip_mode else "done",
             "sent_count": int(campaign.get("sent_count") or 0) + 1,
             "sent_units_count": int(campaign.get("sent_units_count") or 0) + total_sent,
             "last_msg_id": last_source_msg_id,
+            "last_target_post_id": int(payload.get("last_target_post_id") or 0) if isinstance(payload, dict) else int(job.get("id") or 0),
+            "next_send_at": now_iso() if drip_mode else None,
         },
     )
     if run_id:
@@ -185,6 +217,13 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
                 "status": "success",
                 "queued_items": total_sent,
                 "finished_at": now_iso(),
+                "result": {
+                    "run_mode": run_mode,
+                    "account_id": account_id,
+                    "sent_units": total_sent,
+                    "last_msg_id": last_source_msg_id,
+                    "drip_mode": drip_mode,
+                },
             },
         )
     create_event(
@@ -202,6 +241,19 @@ async def _run_campaign_telegram(job: dict, campaign: dict, client, account_id: 
         },
         campaign_id=campaign["id"],
     )
+    if drip_mode:
+        create_event(
+            "info",
+            "campaign_drip_cursor_advanced",
+            "Drip cursor advanced",
+            {
+                "campaign_id": campaign["id"],
+                "account_id": account_id,
+                "last_msg_id": last_source_msg_id,
+                "run_mode": run_mode,
+            },
+            campaign_id=campaign["id"],
+        )
     return {
         "job_type": "run_campaign",
         "campaign_id": campaign["id"],
@@ -349,7 +401,18 @@ async def loop():
                     payload = job.get("payload") or {}
                     run_id = payload.get("campaign_run_id") if isinstance(payload, dict) else None
                     if run_id:
-                        update_row("campaign_runs", run_id, {"status": "failed", "last_error": error_message})
+                        update_row(
+                            "campaign_runs",
+                            run_id,
+                            {
+                                "status": "failed",
+                                "last_error": error_message,
+                                "result": {
+                                    "run_mode": str(payload.get("run_mode") or "full") if isinstance(payload, dict) else "full",
+                                    "account_id": account_id,
+                                },
+                            },
+                        )
                     if job.get("account_id") and (
                         _looks_risky(error_message) or "unauthorized" in error_message.lower() or "invalid" in error_message.lower()
                     ):
