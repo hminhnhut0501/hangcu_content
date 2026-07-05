@@ -6,6 +6,7 @@ from app.services.scheduler_service import enqueue_due_work
 from app.repositories.content_repo import count_rows
 from app.repositories.system_repo import list_accounts, list_logs, list_settings, recent_jobs
 from app.core.auth import require_user, require_admin
+from app.services.schema_service import build_schema_reconcile
 
 router = APIRouter()
 
@@ -88,3 +89,8 @@ def health():
 @router.get("/health/deep", dependencies=[Depends(require_admin)])
 def health_deep():
     return build_health_deep_snapshot()
+
+
+@router.get("/schema/reconcile", dependencies=[Depends(require_user)])
+def schema_reconcile():
+    return build_schema_reconcile()

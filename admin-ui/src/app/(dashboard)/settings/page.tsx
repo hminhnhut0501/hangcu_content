@@ -69,6 +69,7 @@ export default function SettingsPage() {
     ok?: boolean;
     missing?: Record<string, string[]>;
     extra?: Record<string, string[]>;
+    suggested_migrations?: { table: string; column: string; sql: string }[];
   } | null>(null);
   const [schemaLoading, setSchemaLoading] = useState(false);
   const [form, setForm] = useState({
@@ -215,6 +216,20 @@ export default function SettingsPage() {
       notify(err instanceof Error ? err.message : 'Không chạy được schema reconcile.', 'error');
     } finally {
       setSchemaLoading(false);
+    }
+  };
+
+  const exportSchemaReport = async () => {
+    if (!schemaReport) {
+      notify('Chưa có schema report để export.', 'warning');
+      return;
+    }
+    const text = JSON.stringify(schemaReport, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      notify('Đã copy schema reconciliation report.', 'success');
+    } catch {
+      notify(text, 'warning');
     }
   };
 
@@ -450,6 +465,9 @@ export default function SettingsPage() {
                 <Button sx={{ ml: 'auto' }} size="small" onClick={runSchemaReconcile} disabled={schemaLoading} startIcon={<SyncIcon />}>
                   {schemaLoading ? 'Checking...' : 'Check schema'}
                 </Button>
+                <Button size="small" onClick={exportSchemaReport} disabled={!schemaReport} variant="outlined">
+                  Export report
+                </Button>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 Đọc schema thật từ backend và liệt kê cột thiếu so với code/migration.
@@ -467,6 +485,16 @@ export default function SettingsPage() {
                       </Typography>
                     </Box>
                   ))}
+                  {(schemaReport.suggested_migrations || []).length > 0 && (
+                    <Box sx={{ mt: 1, p: 1.5, borderRadius: 1, bgcolor: 'rgba(15,23,42,0.55)' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                        Suggested migrations
+                      </Typography>
+                      <Box component="pre" sx={{ m: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12 }}>
+                        {(schemaReport.suggested_migrations || []).map(item => item.sql).join('\n')}
+                      </Box>
+                    </Box>
+                  )}
                   {Object.keys(schemaReport.missing || {}).length === 0 && (
                     <Typography variant="body2" color="success.main">
                       Không thiếu cột nào trong bộ schema đã khai báo.

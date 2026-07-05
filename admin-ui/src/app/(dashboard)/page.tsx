@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [now, setNow] = React.useState(() => Date.now());
   const { data, error, isLoading } = useSWR('/api/dashboard/summary', fetcher, { refreshInterval: 30000 });
   const { data: health } = useSWR<HealthSnapshot>('/api/internal/health', fetcher, { refreshInterval: 15000 });
+  const { data: schemaReconcile } = useSWR<{ ok?: boolean; missing?: Record<string, string[]> }>('/api/internal/schema/reconcile', fetcher, { refreshInterval: 60000 });
 
   React.useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 15000);
@@ -110,6 +111,7 @@ export default function Dashboard() {
     if (value === 'error') return 'error';
     return 'default';
   };
+  const schemaMismatchCount = Object.keys(schemaReconcile?.missing || {}).length;
 
   return (
     <Box>
@@ -123,6 +125,18 @@ export default function Dashboard() {
         <UpdateIcon fontSize="inherit" />
         Health live refresh tự động từ /api/internal/health
       </Typography>
+      {schemaMismatchCount > 0 && (
+        <Card sx={{ mb: 3, borderRadius: 3, border: '1px solid rgba(239, 68, 68, 0.35)', bgcolor: 'rgba(127, 29, 29, 0.12)' }}>
+          <CardContent sx={{ py: 2.5 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#fca5a5' }}>
+              Schema mismatch detected
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#fecaca', mt: 0.5 }}>
+              Có {schemaMismatchCount} bảng đang thiếu cột so với code/migration. Vào Settings để xem chi tiết và export report.
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
 
       <Grid container spacing={3}>
         {stats.map((stat, idx) => (
