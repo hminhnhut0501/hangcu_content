@@ -98,6 +98,18 @@ type QueueJobRow = {
   result?: Record<string, unknown> | null;
 };
 
+type LogRow = {
+  id: number;
+  level?: string | null;
+  code?: string | null;
+  message?: string | null;
+  created_at?: string | null;
+  campaign_id?: string | null;
+  topic_id?: string | null;
+  group_id?: string | null;
+  payload?: Record<string, unknown> | null;
+};
+
 type TopicDraft = {
   name: string;
   target_link_seed: string;
@@ -326,8 +338,10 @@ export default function ProjectsPage() {
   const CampaignTimelinePanel = ({ campaign }: { campaign: CampaignRow }) => {
     const { data: runs } = useSWR<CampaignRunRow[]>(`/api/runs/campaigns/${campaign.id}?limit=10`, fetcher, { refreshInterval: 5000 });
     const { data: jobs } = useSWR<QueueJobRow[]>(`/api/runs/jobs?campaign_id=${campaign.id}&limit=10`, fetcher, { refreshInterval: 5000 });
+    const { data: logs } = useSWR<LogRow[]>(`/api/logs?entity_type=campaign&entity_id=${campaign.id}&limit=10`, fetcher, { refreshInterval: 5000 });
     const latestRun = runs?.[0];
     const latestJob = jobs?.[0];
+    const latestLog = logs?.[0];
 
     const timeline = React.useMemo(() => {
       const runItems = (runs || []).map((run) => ({
@@ -368,10 +382,21 @@ export default function ProjectsPage() {
           detail: details.join(' · '),
         };
       });
-      return [...jobItems, ...runItems]
+      const logItems = (logs || []).map((log) => ({
+        key: `log-${log.id}`,
+        ts: log.created_at || '',
+        title: `Log ${String(log.level || 'info')} · ${String(log.code || '')}`,
+        badge: String(log.level || 'info'),
+        tone:
+          String(log.level || '').toLowerCase() === 'error' ? 'error' :
+          String(log.level || '').toLowerCase() === 'warning' ? 'warning' :
+          String(log.level || '').toLowerCase() === 'info' ? 'info' : 'default',
+        detail: log.message || '',
+      }));
+      return [...logItems, ...jobItems, ...runItems]
         .sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')))
         .slice(0, 8);
-    }, [jobs, runs]);
+    }, [jobs, logs, runs]);
 
     const latestAccount = String(
       latestJob?.account_id
@@ -393,7 +418,7 @@ export default function ProjectsPage() {
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Chi tiết job gần nhất</Typography>
             <Typography variant="body2" color="text.secondary">
-              Timeline thật từ queue_jobs và campaign_runs của campaign này.
+              Timeline thật từ queue_jobs, campaign_runs và content_events của campaign này.
             </Typography>
           </Box>
           <Chip label={campaign.status || 'draft'} size="small" variant="outlined" />
@@ -420,6 +445,9 @@ export default function ProjectsPage() {
             <Typography variant="caption" color="text.secondary">
               {Number.isFinite(latestMsg) && latestMsg > 0 ? `Last message #${latestMsg}` : 'Chưa có message id'}
             </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {latestLog ? `Last log: ${latestLog.level || 'info'} · ${latestLog.code || ''}` : 'Chưa có log'}
+            </Typography>
           </Card>
         </Box>
 
@@ -444,6 +472,76 @@ export default function ProjectsPage() {
           )) : (
             <Alert severity="info" variant="outlined">
               Chưa có job/run nào cho campaign này.
+            </Alert>
+          )}
+        </Box>
+      </Card>
+    );
+  };
+
+  const ProjectActivityPanel = ({ projectId, campaign }: { projectId: string; campaign?: CampaignRow | null }) => {
+    const { data: logs } = useSWR<LogRow[]>(
+      projectId ? `/api/logs?entity_type=group&entity_id=${projectId}&limit=10` : null,
+      fetcher,
+      { refreshInterval: 5000 },
+    );
+    const { data: campaignLogs } = useSWR<LogRow[]>(
+      campaign?.id ? `/api/logs?entity_type=campaign&entity_id=${campaign.id}&limit=10` : null,
+      fetcher,
+      { refreshInterval: 5000 },
+    );
+    const merged = React.useMemo(() => {
+      const projectItems = (logs || []).map((log) => ({
+        key: `group-${log.id}`,
+        ts: log.created_at || '',
+        label: `Project log · ${log.level || 'info'} · ${log.code || ''}`,
+        detail: log.message || '',
+        tone: String(log.level || '').toLowerCase() === 'error' ? 'error' : String(log.level || '').toLowerCase() === 'warning' ? 'warning' : 'info',
+      }));
+      const campaignItems = (campaignLogs || []).map((log) => ({
+        key: `campaign-${log.id}`,
+        ts: log.created_at || '',
+        label: `Campaign log · ${log.level || 'info'} · ${log.code || ''}`,
+        detail: log.message || '',
+        tone: String(log.level || '').toLowerCase() === 'error' ? 'error' : String(log.level || '').toLowerCase() === 'warning' ? 'warning' : 'info',
+      }));
+      return [...projectItems, ...campaignItems]
+        .sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')))
+        .slice(0, 12);
+    }, [campaignLogs, logs]);
+
+    return (
+      <Card sx={{ p: 2, borderRadius: 3, border: '1px solid rgba(148, 163, 184, 0.18)' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Activity timeline</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Log thật từ project và campaign đang chọn để lần ra ngay chỗ bị kẹt.
+            </Typography>
+          </Box>
+          <Chip label={`Logs: ${(logs?.length || 0) + (campaignLogs?.length || 0)}`} size="small" variant="outlined" />
+        </Box>
+        <Box sx={{ display: 'grid', gap: 1, mt: 2 }}>
+          {merged.length > 0 ? merged.map((item) => (
+            <Card key={item.key} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap' }}>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{item.label}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {item.ts ? new Date(item.ts).toLocaleString('vi-VN', { hour12: false }) : '-'}
+                  </Typography>
+                </Box>
+                <Chip label={item.tone} size="small" color={item.tone as 'default' | 'success' | 'error' | 'info' | 'warning'} variant="outlined" />
+              </Box>
+              {item.detail && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {item.detail}
+                </Typography>
+              )}
+            </Card>
+          )) : (
+            <Alert severity="info" variant="outlined">
+              Chưa có log nào cho project/campaign này.
             </Alert>
           )}
         </Box>
@@ -984,6 +1082,51 @@ export default function ProjectsPage() {
                   </Box>
                 </Card>
 
+                <Card variant="outlined" sx={{ p: 1.75, bgcolor: 'rgba(15, 23, 42, 0.22)', borderRadius: 3 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Scheduler plan</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Tự lên lịch theo `auto_slots` và chiến lược đang chọn, rồi queue tuần tự các campaign child.
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                    {(autoStatus?.group?.auto_slots || []).map((slot) => (
+                      <Chip key={slot} label={slot} size="small" variant="outlined" />
+                    ))}
+                    {(!autoStatus?.group?.auto_slots || autoStatus.group.auto_slots.length === 0) && (
+                      <Chip label="No slots" size="small" variant="outlined" />
+                    )}
+                  </Box>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1, mt: 1.5 }}>
+                    <Card variant="outlined" sx={{ p: 1.25 }}>
+                      <Typography variant="caption" color="text.secondary">Next run</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 800, wordBreak: 'break-word' }}>
+                        {formatIso(autoStatus?.group?.auto_next_run_at)}
+                      </Typography>
+                    </Card>
+                    <Card variant="outlined" sx={{ p: 1.25 }}>
+                      <Typography variant="caption" color="text.secondary">Last run</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 800, wordBreak: 'break-word' }}>
+                        {formatIso(autoStatus?.group?.auto_last_run_at)}
+                      </Typography>
+                    </Card>
+                    <Card variant="outlined" sx={{ p: 1.25 }}>
+                      <Typography variant="caption" color="text.secondary">Strategy</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 800, wordBreak: 'break-word' }}>
+                        {autoStatus?.group?.auto_strategy || workspaceProject.auto_strategy || 'round_robin'}
+                      </Typography>
+                    </Card>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1.5 }}>
+                    {(autoStatus?.next_preview || []).map((item) => (
+                      <Chip
+                        key={item.campaign_id}
+                        label={`${item.title || item.campaign_id || 'campaign'} · #${item.last_msg_id || 0}`}
+                        size="small"
+                        variant="outlined"
+                      />
+                    ))}
+                  </Box>
+                </Card>
+
                 {modelSummary?.ok && (
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 1.25 }}>
                     {Object.entries(modelSummary.model || {}).slice(0, 4).map(([key, item]) => (
@@ -1206,11 +1349,17 @@ export default function ProjectsPage() {
               <Box sx={{ display: 'grid', gap: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Observability</Typography>
                 {selectedCampaign ? (
-                  <CampaignTimelinePanel campaign={selectedCampaign} />
+                  <>
+                    <ProjectActivityPanel projectId={selectedProjectId} campaign={selectedCampaign} />
+                    <CampaignTimelinePanel campaign={selectedCampaign} />
+                  </>
                 ) : (
-                  <Alert severity="info" variant="outlined">
-                    Chọn một campaign để xem timeline job gần nhất.
-                  </Alert>
+                  <>
+                    <ProjectActivityPanel projectId={selectedProjectId} />
+                    <Alert severity="info" variant="outlined">
+                      Chọn một campaign để xem timeline job gần nhất.
+                    </Alert>
+                  </>
                 )}
               </Box>
             )}
